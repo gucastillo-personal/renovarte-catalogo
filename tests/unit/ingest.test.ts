@@ -323,3 +323,52 @@ describe("buildCatalog category cleanup (spec 0009 AC-5)", () => {
     for (const c of cats) expect(c.endsWith(".")).toBe(false);
   });
 });
+
+describe("buildCatalog offers (spec 0005)", () => {
+  const row = (codigo: string): CostRow => ({
+    codigo,
+    nombre: `P${codigo}`,
+    categoria: "Antiage",
+    presentacion: "50 g",
+    descripcion: "d",
+    precio_costo: 100,
+    en_oferta: false,
+    tags: [],
+    imagen: "/img/placeholder.svg",
+  });
+
+  it("flags en_oferta only for codes in the offers map", () => {
+    const outPath = path.join(makeTmpDir(), "products.json");
+    const { products } = buildCatalog([row("1"), row("2"), row("3")], {
+      env: { MARGIN_PERCENT_DEFAULT: "20" },
+      outPath,
+      offers: new Map([["2", { descuentoPct: 0 }]]),
+    });
+    expect(Object.fromEntries(products.map((p) => [p.id, p.en_oferta]))).toEqual({
+      "1": false,
+      "2": true,
+      "3": false,
+    });
+  });
+
+  it("applies descuentoPct to precio_venta of that product only", () => {
+    const outPath = path.join(makeTmpDir(), "products.json");
+    const { products } = buildCatalog([row("1"), row("2")], {
+      env: { MARGIN_PERCENT_DEFAULT: "20" }, // precio_venta base = 100 * 1.2 = 120
+      outPath,
+      offers: new Map([["2", { descuentoPct: 10 }]]),
+    });
+    const byId = Object.fromEntries(products.map((p) => [p.id, p.precio_venta]));
+    expect(byId["1"]).toBe(120);
+    expect(byId["2"]).toBe(108); // round(120 * 0.9)
+  });
+
+  it("leaves everything false without an offers map", () => {
+    const outPath = path.join(makeTmpDir(), "products.json");
+    const { products } = buildCatalog([row("1"), row("2")], {
+      env: { MARGIN_PERCENT_DEFAULT: "20" },
+      outPath,
+    });
+    expect(products.every((p) => p.en_oferta === false)).toBe(true);
+  });
+});

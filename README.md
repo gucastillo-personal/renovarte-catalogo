@@ -88,9 +88,15 @@ pnpm transform   # 2. data/input/ → public/data/products.json     (descuento +
    cuando haga falta).
 3. `pnpm transform` → excluye productos de uso profesional exclusivo, toma el
    `price` como costo y le suma `MARGIN_PERCENT`, limpia nombres de categoría,
-   reescribe `public/data/products.json`. Determinístico: correrlo dos veces no
-   cambia el archivo.
+   marca en oferta los `productCode` de `data/offers.json` (spec
+   [`0005`](./specs/0005-offer-indicator/spec.md)), reescribe
+   `public/data/products.json`. Determinístico: correrlo dos veces no cambia el
+   archivo.
 4. `git commit public/data/products.json` + `git push` → deploy en Vercel.
+
+Ofertas: editá `data/offers.json` — `{ "codigos": { "<productCode>": {} } }` para
+solo el badge, o `{ "<productCode>": { "descuento_pct": 10 } }` para 10% off el
+`precio_venta`. `pnpm transform`, commiteá y pusheá.
 
 **Fallback CSV** (spec [`0002`](./specs/0002-ingest-script/spec.md)):
 `pnpm transform --in data/raw/serlaca_export.sample.csv` — salta la etapa 1 y

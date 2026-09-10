@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { OfferBadge } from "@/components/OfferBadge";
 import { slugifyCategoria } from "@/lib/category-slug";
 import { formatARS } from "@/lib/format";
 import { getAllProducts, getProductById } from "@/lib/products";
@@ -57,11 +58,7 @@ export default async function ProductPage({
           >
             {product.categoria}
           </Link>
-          {product.en_oferta && (
-            <span className="rounded bg-sage-600 px-2 py-0.5 text-sm font-medium text-beige-50">
-              Oferta
-            </span>
-          )}
+          {product.en_oferta && <OfferBadge className="text-sm" />}
         </div>
 
         <h1 className="text-2xl font-semibold tracking-tight text-sage-900">

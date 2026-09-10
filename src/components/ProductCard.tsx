@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { OfferBadge } from "@/components/OfferBadge";
 import { formatARS } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
@@ -19,11 +20,7 @@ export function ProductCard({ product }: { product: Product }) {
           unoptimized
           className="h-full w-full object-cover"
         />
-        {product.en_oferta && (
-          <span className="absolute left-2 top-2 rounded bg-sage-600 px-2 py-0.5 text-xs font-medium text-beige-50">
-            Oferta
-          </span>
-        )}
+        {product.en_oferta && <OfferBadge className="absolute left-2 top-2" />}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">

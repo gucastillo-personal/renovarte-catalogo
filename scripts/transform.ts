@@ -5,9 +5,9 @@
  *   pnpm transform --in data/input/serlaca-raw.json
  *   pnpm transform --in data/raw/serlaca_export.sample.csv   # fallback CSV
  *
- * Toma el crudo (dump de la API o un CSV), aplica descuento + margen + limpieza
- * de categorías + filtro de profesional-exclusivos, y escribe
- * `public/data/products.json` listo para la app.
+ * Toma el crudo (dump de la API o un CSV), aplica margen + limpieza de
+ * categorías + filtro de profesional-exclusivos + ofertas (data/offers.json),
+ * y escribe `public/data/products.json` listo para la app.
  *
  * El `price` del input ES el costo de RenovArte (cuenta de distribuidora):
  *   precio_venta = round(price * (1 + MARGIN_PERCENT/100))
@@ -25,11 +25,13 @@ import {
   buildCatalogFromCsv,
   type BuildCatalogResult,
 } from "./lib/build-catalog";
+import { loadOffers } from "./lib/offers";
 import { rawToCostRows } from "./lib/sources/serlaca-api";
 
 config({ path: [".env.local", ".env"], quiet: true });
 
 const DEFAULT_IN = path.join("data", "input", "serlaca-raw.json");
+const OFFERS_PATH = path.join("data", "offers.json");
 const OUT_PATH = path.join("public", "data", "products.json");
 
 function getArg(name: string): string | undefined {
@@ -43,6 +45,7 @@ function getArg(name: string): string | undefined {
 async function main(): Promise<void> {
   const env = process.env;
   const inPath = getArg("in") ?? DEFAULT_IN;
+  const offers = loadOffers(OFFERS_PATH);
 
   let result: BuildCatalogResult;
 
@@ -52,6 +55,7 @@ async function main(): Promise<void> {
       outPath: OUT_PATH,
       env,
       publicDir: path.join(process.cwd(), "public"),
+      offers,
     });
   } else {
     let dump: { dataObjects?: unknown };
@@ -69,15 +73,15 @@ async function main(): Promise<void> {
     const { rows, warnings: mapWarnings } = rawToCostRows(dump.dataObjects, {
       imageBase: env.SERLACA_IMAGE_BASE,
     });
-    const built = buildCatalog(rows, { env, outPath: OUT_PATH });
+    const built = buildCatalog(rows, { env, outPath: OUT_PATH, offers });
     result = { products: built.products, warnings: [...mapWarnings, ...built.warnings] };
   }
 
   for (const warning of result.warnings) console.warn(`⚠  ${warning}`);
 
-  const offers = result.products.filter((p) => p.en_oferta).length;
+  const offerCount = result.products.filter((p) => p.en_oferta).length;
   console.log(
-    `✓ ${result.products.length} producto(s) (${offers} en oferta) → ${OUT_PATH}`,
+    `✓ ${result.products.length} producto(s) (${offerCount} en oferta) → ${OUT_PATH}`,
   );
   console.log("  Reporte de márgenes: pendiente (spec 0007).");
 }

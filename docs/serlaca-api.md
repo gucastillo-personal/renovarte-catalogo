@@ -156,8 +156,10 @@ precio_venta = round(price × (1 + MARGIN_PERCENT / 100))
    sin descargar). `SERLACA_IMAGE_BASE` por env; hay que habilitar el host en
    `next.config.ts` (`images.remotePatterns`). Si `imageURL` es `null` →
    `/img/placeholder.svg`.
-4. **`en_oferta`: default `false`.** Override manual se resuelve más adelante
-   (no en 0009).
+4. **`en_oferta`: default `false`.** La API no trae ofertas; se marcan a mano en
+   `data/offers.json` (`{ "codigos": { "<productCode>": { "descuento_pct"?: N } } }`),
+   que `pnpm transform` aplica — badge y, opcional, N% off `precio_venta`
+   (spec 0005).
 
 ## Confirmado en la corrida real (2026-09-10)
 

@@ -40,7 +40,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | 0010 | GitHub Action programado que corre la ingesta | Placeholder (follow-up de 0009) |
 | [0003](./0003-category-filter/spec.md) | Category filter (/categoria/[slug], CategoryNav) | Built (115 unit + 8 e2e); 24 categorías |
 | [0004](./0004-search/spec.md) | Name search (SearchBox + CatalogView, filtro cliente) | Built (121 unit + 11 e2e) |
-| [0005](./0005-offer-indicator/spec.md) | Offer indicator | Backlog |
+| [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa |
 | [0006](./0006-branding/spec.md) | Branding (logo, palette, meta, favicon) | Backlog |
 | [0007](./0007-margin-report/spec.md) | Internal margin report | Backlog (usará `price` de la API vía 0009) |
 | [0008](./0008-reference-data/spec.md) | LACA public reference data | ~~Deprecada~~ — la API 0009 ya trae `price` |
@@ -53,7 +53,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | RF-02 | Filter by category | 0003 | Built — 24 páginas de categoría SSG, chip activo con aria-current |
 | RF-03 | Search by text (name) | 0004 | Built — filtro cliente accent-insensitive, sin red; anda dentro de categoría |
 | RF-04 | Product detail page | 0001 | Done — SSG, deployed |
-| RF-05 | Mark products on offer | 0005 | Backlog (badge rendered in 0001, full behavior in 0005) |
+| RF-05 | Mark products on offer | 0005 | Built — badge en card+ficha, página /ofertas, fuente manual data/offers.json |
 | RF-06 | Price = cost + configurable margin; never show cost | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-07 | Catalog updated by a local script regenerating the data file | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-08 | Margin configurable by env var, no code change | 0002 | Done — `MARGIN_PERCENT_DEFAULT` + per-category override |

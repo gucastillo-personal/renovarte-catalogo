@@ -1,6 +1,6 @@
 # 0005 — Offer indicator
 
-**Status:** Backlog
+**Status:** Built + revisión: `data/offers.json` soporta `descuento_pct` por código. OfferBadge + /ofertas. Gate verde (134 unit + 12 e2e). 1 oferta activa (511950004, 10%).
 **PRD:** RF-05
 **RFC:** §2.4 (`en_oferta` field)
 

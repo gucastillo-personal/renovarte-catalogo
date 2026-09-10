@@ -11,6 +11,7 @@ import {
   getCategoryList,
   getProductById,
   getProductsByCategoria,
+  getProductsOnOffer,
 } from "@/lib/products";
 import { PRODUCT_KEYS } from "@/lib/types";
 
@@ -82,6 +83,14 @@ describe("getProductsByCategoria", () => {
   });
   it("returns [] for an unknown category", () => {
     expect(getProductsByCategoria("Categoría Inexistente")).toEqual([]);
+  });
+});
+
+describe("getProductsOnOffer (spec 0005)", () => {
+  it("returns exactly the en_oferta products", () => {
+    const onOffer = getProductsOnOffer();
+    expect(onOffer.every((p) => p.en_oferta === true)).toBe(true);
+    expect(onOffer).toHaveLength(getAllProducts().filter((p) => p.en_oferta).length);
   });
 });
 

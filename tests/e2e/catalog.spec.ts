@@ -156,3 +156,32 @@ test("search inside a category stays within that category (AC-5)", async ({ page
   await expect(cards).toHaveCount(0);
   await expect(page.getByText(/no encontramos productos/i)).toBeVisible();
 });
+
+// --- Offer indicator (spec 0005) ---
+
+const offerProducts = products.filter((p) => p.en_oferta);
+
+test("offer badge + /ofertas reflect the en_oferta products (RF-05)", async ({ page }) => {
+  const nav = () => page.getByRole("navigation", { name: "Categorías" });
+
+  if (offerProducts.length > 0) {
+    await page.goto("/");
+    await expect(nav().getByRole("link", { name: "Ofertas" })).toBeVisible();
+
+    const first = offerProducts[0]!;
+    const card = page.locator(`main ul > li a[href="/producto/${first.id}"]`);
+    await expect(card.getByText("Oferta", { exact: true })).toBeVisible();
+
+    await nav().getByRole("link", { name: "Ofertas" }).click();
+    await expect(page).toHaveURL(/\/ofertas$/);
+    await expect(page.locator("main ul > li")).toHaveCount(offerProducts.length);
+  } else {
+    await page.goto("/");
+    await expect(nav().getByRole("link", { name: "Ofertas" })).toHaveCount(0);
+    await expect(page.locator("main ul > li").getByText("Oferta", { exact: true })).toHaveCount(0);
+
+    const res = await page.goto("/ofertas");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByText(/no hay ofertas/i)).toBeVisible();
+  }
+});

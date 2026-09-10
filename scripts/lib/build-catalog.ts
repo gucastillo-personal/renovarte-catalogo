@@ -5,6 +5,7 @@ import { validateProducts, type Product } from "@/lib/types";
 
 import { cleanCategory } from "./categories";
 import type { CostRow } from "./cost-row";
+import type { Offer } from "./offers";
 import { buildPublicProduct, resolveMargin, toProductsJson } from "./pricing";
 import { readCsvCostRows } from "./sources/csv";
 
@@ -22,19 +23,28 @@ export interface BuildCatalogResult {
  * output that fails the app's own `validateProducts` contract. The internal
  * margin report is spec 0007 and is not produced here.
  */
+export interface BuildCatalogOptions {
+  env: Record<string, string | undefined>;
+  outPath: string;
+  /** Manual offers by product code (spec 0005, from data/offers.json). */
+  offers?: Map<string, Offer>;
+}
+
 export function buildCatalog(
   rows: CostRow[],
-  opts: { env: Record<string, string | undefined>; outPath: string },
+  opts: BuildCatalogOptions,
 ): BuildCatalogResult {
-  const { env, outPath } = opts;
+  const { env, outPath, offers } = opts;
   if (rows.length === 0) {
     throw new Error("transform abortado: no hay productos para procesar");
   }
 
-  // Normalise category names before anything groups by them (spec 0009 AC-5).
+  // Normalise category names (spec 0009 AC-5) and flag manual offers
+  // (spec 0005) before anything groups or builds.
   const normalised = rows.map((row) => ({
     ...row,
     categoria: cleanCategory(row.categoria),
+    en_oferta: offers?.has(row.codigo.trim()) ? true : row.en_oferta,
   }));
 
   const warnings: string[] = [];
@@ -69,7 +79,14 @@ export function buildCatalog(
       const margin = marginByCategoria.get(categoria);
       if (margin === undefined) throw new Error(`categoría desconocida: ${categoria}`);
 
-      products.push(buildPublicProduct(row, { margin }));
+      const product = buildPublicProduct(row, { margin });
+      const descuentoPct = offers?.get(row.codigo.trim())?.descuentoPct ?? 0;
+      if (descuentoPct > 0) {
+        product.precio_venta = Math.round(
+          product.precio_venta * (1 - descuentoPct / 100),
+        );
+      }
+      products.push(product);
     } catch (error) {
       errors.push(`item ${index + 1}: ${(error as Error).message}`);
     }
@@ -96,11 +113,16 @@ export interface BuildFromCsvOptions {
   env: Record<string, string | undefined>;
   /** Public assets root, used to resolve local product images. */
   publicDir: string;
+  offers?: Map<string, Offer>;
 }
 
 /** CSV-source convenience wrapper (spec 0002 fallback). */
 export function buildCatalogFromCsv(opts: BuildFromCsvOptions): BuildCatalogResult {
   const { rows, warnings } = readCsvCostRows(opts.csvPath, { publicDir: opts.publicDir });
-  const result = buildCatalog(rows, { env: opts.env, outPath: opts.outPath });
+  const result = buildCatalog(rows, {
+    env: opts.env,
+    outPath: opts.outPath,
+    offers: opts.offers,
+  });
   return { products: result.products, warnings: [...warnings, ...result.warnings] };
 }

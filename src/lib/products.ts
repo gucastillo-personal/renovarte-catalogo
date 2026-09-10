@@ -89,3 +89,8 @@ export function categoriaFromSlug(slug: string): string | undefined {
 export function getProductsByCategoria(categoria: string): Product[] {
   return load().filter((p) => p.categoria === categoria);
 }
+
+/** Products flagged `en_oferta` (set from `data/offers.json` — spec 0005). */
+export function getProductsOnOffer(): Product[] {
+  return load().filter((p) => p.en_oferta);
+}
