@@ -41,7 +41,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | [0003](./0003-category-filter/spec.md) | Category filter (/categoria/[slug], CategoryNav) | Built (115 unit + 8 e2e); 24 categorías |
 | [0004](./0004-search/spec.md) | Name search (SearchBox + CatalogView, filtro cliente) | Built (121 unit + 11 e2e) |
 | [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa |
-| [0006](./0006-branding/spec.md) | Branding (logo, palette, meta, favicon) | Backlog |
+| [0006](./0006-branding/spec.md) | Branding (logo real, paleta, tipografía, OG, manifest) | Built (135 unit + 15 e2e) |
 | [0007](./0007-margin-report/spec.md) | Internal margin report | Backlog (usará `price` de la API vía 0009) |
 | [0008](./0008-reference-data/spec.md) | LACA public reference data | ~~Deprecada~~ — la API 0009 ya trae `price` |
 
@@ -61,5 +61,5 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | RNF-01 | $0 hosting / infra (free tier) | 0001 | Done — Vercel free tier |
 | RNF-02 | Fast initial load (static catalog, no runtime backend/DB) | 0001, 0009 | Done — all Static/SSG; 0009 keeps ingest out of runtime |
 | RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0007, 0009 | Enforced — `check:leak` green, `buildPublicProduct` emits only public keys, output gated through `validateProducts`; 0009 adds `SERLACA_API_KEY` never in bundle/Vercel |
-| RNF-04 | Responsive, usable on mobile | 0001, 0006 | Done (no h-scroll @390px, e2e); polish in 0006 |
-| RNF-05 | Own repo, documented, portfolio-grade | 0001, 0006 | Done — repo + README + specs, deployed |
+| RNF-04 | Responsive, usable on mobile | 0001, 0006 | Done — sin h-scroll a 390/768/1280 (e2e), paleta + tipografía de marca |
+| RNF-05 | Own repo, documented, portfolio-grade | 0001, 0006 | Done — repo + README + specs + docs/brand.md, deployed |

@@ -6,6 +6,7 @@ priced with RenovArte's own margin. No cart, no checkout, no database — a stat
 
 - **Product spec:** [`docs/PRD-catalogo-renovarte.md`](./docs/PRD-catalogo-renovarte.md)
 - **Architecture:** [`docs/rfc/0001-arquitectura-catalogo.md`](./docs/rfc/0001-arquitectura-catalogo.md)
+- **Marca (paleta, tipografía, logo):** [`docs/brand.md`](./docs/brand.md)
 - **How we build (Spec-Driven Development):** [`specs/`](./specs/) — start with
   [`specs/constitution.md`](./specs/constitution.md) and
   [`specs/README.md`](./specs/README.md).

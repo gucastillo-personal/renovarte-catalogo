@@ -1,31 +1,39 @@
 @import "tailwindcss";
 
 /*
- * Palette derived from the RenovArte logo direction in RFC-0001 §2.1
- * (verde salvia / beige). Placeholder values — finalized in spec 0006.
+ * RenovArte palette (spec 0006). Sampled from the logo — hummingbird/lily line
+ * art in soft sage green on a warm cream ground ("renovArte · SPA DE PIEL").
+ * See docs/brand.md for hex + usage.
  */
 @theme {
-  --color-sage-50: #f2f4ee;
-  --color-sage-100: #e8ede1;
-  --color-sage-200: #d3dcc6;
-  --color-sage-300: #b3c29e;
-  --color-sage-400: #94a97a;
-  --color-sage-500: #7c8a6b;
-  --color-sage-600: #5f6b52;
+  --color-sage-50: #f3f5ef;
+  --color-sage-100: #e7eede;
+  --color-sage-200: #d1ddc3;
+  --color-sage-300: #b2c69e;
+  --color-sage-400: #92ac7c; /* logo line art */
+  --color-sage-500: #7a9463; /* primary — buttons, active chips */
+  --color-sage-600: #5f6b52; /* text on cream (AA) */
   --color-sage-700: #4b5441;
   --color-sage-800: #3d4436;
   --color-sage-900: #333a2e;
 
-  --color-beige-50: #faf8f3;
-  --color-beige-100: #f4f1e8;
-  --color-beige-200: #ebe4d3;
+  --color-beige-50: #faf8f2; /* page ground */
+  --color-beige-100: #f4f1e8; /* logo ground — header / footer / surfaces */
+  --color-beige-200: #eae3d2; /* hairline borders */
   --color-beige-300: #ddd0b6;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), "Iowan Old Style", Georgia, serif;
 }
 
 body {
   background-color: var(--color-beige-50);
   color: var(--color-sage-900);
   font-family: var(--font-sans);
+}
+
+h1,
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: 0.01em;
 }

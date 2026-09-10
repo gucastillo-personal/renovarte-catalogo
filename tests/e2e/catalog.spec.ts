@@ -157,6 +157,48 @@ test("search inside a category stays within that category (AC-5)", async ({ page
   await expect(page.getByText(/no encontramos productos/i)).toBeVisible();
 });
 
+// --- Branding (spec 0006) ---
+
+test("home carries brand metadata (AC-3)", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('link[rel="icon"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="manifest"]')).toHaveCount(1);
+  for (const sel of [
+    'meta[property="og:title"]',
+    'meta[property="og:image"]',
+    'meta[name="twitter:card"]',
+    'meta[name="theme-color"]',
+  ]) {
+    await expect(page.locator(sel)).toHaveCount(1);
+  }
+});
+
+test("the RenovArte logo is in the header on every route (AC-1)", async ({ page }) => {
+  for (const route of ["/", `/categoria/${sampleSlug}`, `/producto/${products[0]!.id}`, "/ofertas"]) {
+    await page.goto(route);
+    const logo = page.locator("header").getByRole("img", { name: "RenovArte" });
+    await expect(logo, route).toBeVisible();
+    await expect(page.locator('header a[href="/"]')).toBeVisible();
+  }
+});
+
+test("no horizontal scroll at 768 and 1280 on home, category and detail (AC-4)", async ({
+  page,
+}) => {
+  const routes = ["/", `/categoria/${sampleSlug}`, `/producto/${products[0]!.id}`];
+  for (const width of [768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const route of routes) {
+      await page.goto(route);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `${route} @ ${width}px`).toBeLessThanOrEqual(1);
+    }
+  }
+});
+
 // --- Offer indicator (spec 0005) ---
 
 const offerProducts = products.filter((p) => p.en_oferta);

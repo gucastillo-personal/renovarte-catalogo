@@ -1,6 +1,6 @@
 # 0006 — Branding
 
-**Status:** Backlog
+**Status:** Built. Logo real (wordmark en header, OG image, apple-icon), paleta afinada, Cormorant + Geist, metadata + manifest. Gate verde (135 unit + 15 e2e).
 **PRD:** §2.1, §4.1; RNF-04, RNF-05
 **RFC:** §2.1 (Tailwind palette from the logo — verde salvia / beige)
 
