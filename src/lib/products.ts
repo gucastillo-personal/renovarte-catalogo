@@ -3,6 +3,7 @@ import "server-only";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { slugifyCategoria } from "@/lib/category-slug";
 import { validateProducts, type Product } from "@/lib/types";
 
 /**
@@ -34,9 +35,57 @@ export function getProductById(id: string): Product | undefined {
   return load().find((p) => p.id === id);
 }
 
-/** Distinct categories present in the catalog, sorted (es locale). Used by spec 0003. */
+/** Distinct categories present in the catalog, sorted (es locale). */
 export function getCategories(): string[] {
   return [...new Set(load().map((p) => p.categoria))].sort((a, b) =>
     a.localeCompare(b, "es"),
   );
+}
+
+export interface CategoryEntry {
+  slug: string;
+  nombre: string;
+  count: number;
+}
+
+let categoryCache: CategoryEntry[] | undefined;
+
+/**
+ * Categories with their URL slug and product count, sorted by name (es).
+ * Throws at build time if two category names collide on the same slug.
+ */
+export function getCategoryList(): CategoryEntry[] {
+  if (categoryCache) return categoryCache;
+
+  const counts = new Map<string, number>();
+  for (const product of load()) {
+    counts.set(product.categoria, (counts.get(product.categoria) ?? 0) + 1);
+  }
+
+  const bySlug = new Map<string, CategoryEntry>();
+  for (const [nombre, count] of counts) {
+    const slug = slugifyCategoria(nombre);
+    const existing = bySlug.get(slug);
+    if (existing) {
+      throw new Error(
+        `slug de categoría duplicado "${slug}": "${existing.nombre}" y "${nombre}"`,
+      );
+    }
+    bySlug.set(slug, { slug, nombre, count });
+  }
+
+  categoryCache = [...bySlug.values()].sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es"),
+  );
+  return categoryCache;
+}
+
+/** Category name for a URL slug, or `undefined` if no category maps to it. */
+export function categoriaFromSlug(slug: string): string | undefined {
+  return getCategoryList().find((c) => c.slug === slug)?.nombre;
+}
+
+/** Products in a category, in the same order as `getAllProducts()` (by name). */
+export function getProductsByCategoria(categoria: string): Product[] {
+  return load().filter((p) => p.categoria === categoria);
 }

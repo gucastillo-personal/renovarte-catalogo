@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "check:leak": "node scripts/check-leak.mjs",
-    "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:leak && pnpm test:e2e",
+    "gate": "pnpm lint && pnpm build && pnpm typecheck && pnpm test && pnpm check:leak && pnpm test:e2e",
     "ship": "pnpm gate && vercel deploy --prod",
     "ship:preview": "pnpm gate && vercel deploy"
   },

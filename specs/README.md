@@ -38,7 +38,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | [0002](./0002-ingest-script/spec.md) | Ingest script — CSV → products.json, margin from env | Done (commit 307df5a); RF-06/07/08 |
 | [0009](./0009-api-ingest/spec.md) | Ingesta serlaca en 2 etapas (`pnpm ingest` crudo → `pnpm transform`) | Built (98 tests); corrida real OK (434→384). Falta `SERLACA_DISCOUNT_PERCENT` real para commitear datos |
 | 0010 | GitHub Action programado que corre la ingesta | Placeholder (follow-up de 0009) |
-| [0003](./0003-category-filter/spec.md) | Category filter | Backlog — next up |
+| [0003](./0003-category-filter/spec.md) | Category filter (/categoria/[slug], CategoryNav) | Built (115 unit + 8 e2e); 24 categorías |
 | [0004](./0004-search/spec.md) | Name search | Backlog |
 | [0005](./0005-offer-indicator/spec.md) | Offer indicator | Backlog |
 | [0006](./0006-branding/spec.md) | Branding (logo, palette, meta, favicon) | Backlog |
@@ -50,7 +50,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | Requirement | Summary | Spec(s) | Status |
 |-------------|---------|---------|--------|
 | RF-01 | Product grid: image, name, presentation, price | 0001 | Done — deployed on Vercel |
-| RF-02 | Filter by category | 0003 | Backlog — next up |
+| RF-02 | Filter by category | 0003 | Built — 24 páginas de categoría SSG, chip activo con aria-current |
 | RF-03 | Search by text (name) | 0004 | Backlog |
 | RF-04 | Product detail page | 0001 | Done — SSG, deployed |
 | RF-05 | Mark products on offer | 0005 | Backlog (badge rendered in 0001, full behavior in 0005) |

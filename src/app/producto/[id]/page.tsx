@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { slugifyCategoria } from "@/lib/category-slug";
 import { formatARS } from "@/lib/format";
 import { getAllProducts, getProductById } from "@/lib/products";
 
@@ -50,9 +51,12 @@ export default async function ProductPage({
 
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded bg-sage-100 px-2 py-0.5 text-sm text-sage-700">
+          <Link
+            href={`/categoria/${slugifyCategoria(product.categoria)}`}
+            className="rounded bg-sage-100 px-2 py-0.5 text-sm text-sage-700 hover:bg-sage-200"
+          >
             {product.categoria}
-          </span>
+          </Link>
           {product.en_oferta && (
             <span className="rounded bg-sage-600 px-2 py-0.5 text-sm font-medium text-beige-50">
               Oferta

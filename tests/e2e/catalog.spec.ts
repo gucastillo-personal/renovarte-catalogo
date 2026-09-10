@@ -3,11 +3,22 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-type CatalogProduct = { id: string; nombre: string };
+import { slugifyCategoria } from "../../src/lib/category-slug";
+
+type CatalogProduct = { id: string; nombre: string; categoria: string };
 
 const products = JSON.parse(
   readFileSync(path.join(process.cwd(), "public", "data", "products.json"), "utf-8"),
 ) as CatalogProduct[];
+
+const categoryCounts = new Map<string, number>();
+for (const p of products) {
+  categoryCounts.set(p.categoria, (categoryCounts.get(p.categoria) ?? 0) + 1);
+}
+const [sampleCategoria, sampleCount] = [...categoryCounts.entries()].sort(
+  (a, b) => b[1] - a[1],
+)[0]!;
+const sampleSlug = slugifyCategoria(sampleCategoria);
 
 test("home lists every product, each with a name and a price (RF-01)", async ({ page }) => {
   await page.goto("/");
@@ -53,4 +64,49 @@ test("unknown product id renders the 404 page", async ({ page }) => {
   const res = await page.goto("/producto/no-such-id");
   expect(res?.status()).toBe(404);
   await expect(page.getByRole("heading", { name: /no encontrada/i })).toBeVisible();
+});
+
+// --- Category filter (spec 0003) ---
+
+test("home shows the category nav (RF-02)", async ({ page }) => {
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Categorías" });
+  await expect(nav.getByRole("link", { name: "Todos" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(nav.getByRole("link", { name: sampleCategoria, exact: true })).toBeVisible();
+});
+
+test("picking a category filters the grid and marks it active (RF-02, AC-3)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("navigation", { name: "Categorías" })
+    .getByRole("link", { name: sampleCategoria, exact: true })
+    .click();
+
+  await expect(page).toHaveURL(new RegExp(`/categoria/${sampleSlug}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sampleCategoria);
+  await expect(page.locator("main ul > li")).toHaveCount(sampleCount);
+
+  const activeChip = page
+    .getByRole("navigation", { name: "Categorías" })
+    .getByRole("link", { name: sampleCategoria, exact: true });
+  await expect(activeChip).toHaveAttribute("aria-current", "page");
+});
+
+test("unknown category slug renders the 404 page (AC-2)", async ({ page }) => {
+  const res = await page.goto("/categoria/no-existe-esta-categoria");
+  expect(res?.status()).toBe(404);
+});
+
+test("category page has no horizontal scroll at 390px (AC-4)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/categoria/${sampleSlug}`);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
 });

@@ -3,7 +3,15 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { getAllProducts, getCategories, getProductById } from "@/lib/products";
+import { slugifyCategoria } from "@/lib/category-slug";
+import {
+  categoriaFromSlug,
+  getAllProducts,
+  getCategories,
+  getCategoryList,
+  getProductById,
+  getProductsByCategoria,
+} from "@/lib/products";
 import { PRODUCT_KEYS } from "@/lib/types";
 
 describe("getAllProducts", () => {
@@ -34,6 +42,46 @@ describe("getCategories", () => {
     const cats = getCategories();
     expect(new Set(cats).size).toBe(cats.length);
     expect(cats).toEqual([...cats].sort((a, b) => a.localeCompare(b, "es")));
+  });
+});
+
+describe("getCategoryList (spec 0003)", () => {
+  it("covers every product exactly once and has unique slugs", () => {
+    const list = getCategoryList();
+    expect(list.map((c) => c.slug)).toEqual([...new Set(list.map((c) => c.slug))]);
+    const total = list.reduce((n, c) => n + c.count, 0);
+    expect(total).toBe(getAllProducts().length);
+  });
+
+  it("is sorted by name and slugs match slugifyCategoria", () => {
+    const list = getCategoryList();
+    expect(list.map((c) => c.nombre)).toEqual(
+      [...list.map((c) => c.nombre)].sort((a, b) => a.localeCompare(b, "es")),
+    );
+    for (const c of list) expect(c.slug).toBe(slugifyCategoria(c.nombre));
+  });
+});
+
+describe("categoriaFromSlug", () => {
+  it("round-trips every category", () => {
+    for (const c of getCategoryList()) {
+      expect(categoriaFromSlug(c.slug)).toBe(c.nombre);
+    }
+  });
+  it("returns undefined for an unknown slug", () => {
+    expect(categoriaFromSlug("no-existe-esta-categoria")).toBeUndefined();
+  });
+});
+
+describe("getProductsByCategoria", () => {
+  it("returns exactly the products of that category", () => {
+    const { nombre, count } = getCategoryList()[0]!;
+    const products = getProductsByCategoria(nombre);
+    expect(products).toHaveLength(count);
+    expect(products.every((p) => p.categoria === nombre)).toBe(true);
+  });
+  it("returns [] for an unknown category", () => {
+    expect(getProductsByCategoria("Categoría Inexistente")).toEqual([]);
   });
 });
 

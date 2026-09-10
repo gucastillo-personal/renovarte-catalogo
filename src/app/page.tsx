@@ -1,4 +1,5 @@
-import { ProductCard } from "@/components/ProductCard";
+import { CategoryNav } from "@/components/CategoryNav";
+import { ProductGrid } from "@/components/ProductGrid";
 import { getAllProducts } from "@/lib/products";
 
 export default function Home() {
@@ -16,13 +17,9 @@ export default function Home() {
         </p>
       </div>
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <li key={product.id} className="flex">
-            <ProductCard product={product} />
-          </li>
-        ))}
-      </ul>
+      <CategoryNav />
+
+      <ProductGrid products={products} />
     </div>
   );
 }

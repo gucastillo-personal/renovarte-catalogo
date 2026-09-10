@@ -1,4 +1,7 @@
 allowBuilds:
-  esbuild: set this to true or false
+  # esbuild trae binario por plataforma vía optionalDependencies; su script de
+  # install no hace falta (tsx / pnpm transform funcionan igual). Lo denegamos
+  # como sharp / unrs-resolver para no correr scripts de install de terceros.
+  esbuild: false
   sharp: false
   unrs-resolver: false

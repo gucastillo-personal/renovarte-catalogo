@@ -43,7 +43,7 @@ pnpm dev            # http://localhost:3000
 | `pnpm ingest` | **Etapa 1** — baja el catálogo crudo de la API de serlaca → `data/input/serlaca-raw.json` (spec [`0009`](./specs/0009-api-ingest/spec.md)) |
 | `pnpm transform` | **Etapa 2** — `data/input/` (o `--in <csv>`) → `public/data/products.json` con margen + limpieza |
 | `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista en el output (`.next/`, `public/data/`) — RNF-03 |
-| `pnpm gate` | Corre todo lo anterior en orden (typecheck · lint · test · build · check:leak · e2e) |
+| `pnpm gate` | Corre todo en orden: lint · build · typecheck · test · check:leak · e2e (build antes de typecheck: genera los tipos de ruta de Next) |
 | `pnpm ship` | `pnpm gate` y, si pasa, `vercel deploy --prod` (deploy a producción) |
 | `pnpm ship:preview` | `pnpm gate` y `vercel deploy` (URL de preview) |
 

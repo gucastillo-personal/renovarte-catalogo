@@ -1,6 +1,6 @@
 # 0003 — Category filter
 
-**Status:** Backlog
+**Status:** Built (commit pendiente). 24 categorías, gate verde (115 unit + 8 e2e).
 **PRD:** RF-02
 **RFC:** §2.5 (`app/categoria/[slug]/page.tsx`, `CategoryNav`)
 
