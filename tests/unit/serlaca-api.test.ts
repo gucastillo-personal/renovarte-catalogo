@@ -138,7 +138,7 @@ describe("mapToCostRow", () => {
         price: 17600,
         imageURL: "/files/Products/lapiz.jpg",
       }),
-      { imageBase: "https://api.serlaca.com" },
+      { imageBase: "https://www.laboratoriolaca.com" },
     );
 
     expect(row).toEqual({
@@ -150,15 +150,22 @@ describe("mapToCostRow", () => {
       precio_costo: 17600,
       en_oferta: false,
       tags: [],
-      imagen: "https://api.serlaca.com/files/Products/lapiz.jpg",
+      imagen: "https://www.laboratoriolaca.com/files/Products/lapiz.jpg",
     });
   });
 
   it("uses the placeholder when imageURL is null", () => {
     const row = mapToCostRow(serlacaProduct("x"), {
-      imageBase: "https://api.serlaca.com",
+      imageBase: "https://www.laboratoriolaca.com",
     });
     expect(row.imagen).toBe("/img/placeholder.svg");
+  });
+
+  it("defaults the image host to laboratoriolaca.com (not api.serlaca.com)", () => {
+    const { rows } = rawToCostRows([
+      serlacaProduct("y", { imageURL: "/files/Products/foo.png" }),
+    ]);
+    expect(rows[0]!.imagen).toBe("https://www.laboratoriolaca.com/files/Products/foo.png");
   });
 });
 

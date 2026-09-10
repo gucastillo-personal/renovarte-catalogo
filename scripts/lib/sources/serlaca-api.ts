@@ -12,7 +12,8 @@ import type { CostRow } from "../cost-row";
 import { cleanName, formatSize, htmlToText } from "../html";
 
 const ENDPOINT = "https://api.serlaca.com/Products/ReadProducts";
-export const DEFAULT_IMAGE_BASE = "https://api.serlaca.com";
+// Las imágenes NO están en api.serlaca.com — se sirven desde el sitio de LACA.
+export const DEFAULT_IMAGE_BASE = "https://www.laboratoriolaca.com";
 const PLACEHOLDER_IMAGE = "/img/placeholder.svg";
 
 export interface SerlacaProduct {

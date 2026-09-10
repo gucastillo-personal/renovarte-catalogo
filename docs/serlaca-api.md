@@ -163,8 +163,10 @@ precio_venta = round(price × (1 + MARGIN_PERCENT / 100))
 
 - `productCategoryIds: []` trae **todo el catálogo**: 434 productos crudos en 37
   páginas → 384 tras filtrar 50 `professionalExclusive`.
-- Las imágenes cargan desde `https://api.serlaca.com` + `imageURL`.
-  `remotePatterns` incluye `api.serlaca.com` y `www.serlaca.com`.
+- Las imágenes **NO** están en `api.serlaca.com` (404). Se sirven desde
+  `https://www.laboratoriolaca.com` + `imageURL` (mismo path `/files/Products/…`).
+  `SERLACA_IMAGE_BASE=https://www.laboratoriolaca.com`; `next.config.ts`
+  `remotePatterns` incluye `www.laboratoriolaca.com` y `laboratoriolaca.com`.
 
 ## Impacto en specs existentes
 

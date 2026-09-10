@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // Product photos referenced straight from serlaca's file server (spec 0009).
+    // Fotos de producto referenciadas directo del file server de LACA (spec 0009).
     remotePatterns: [
-      { protocol: "https", hostname: "api.serlaca.com" },
-      { protocol: "https", hostname: "www.serlaca.com" },
+      { protocol: "https", hostname: "www.laboratoriolaca.com" },
+      { protocol: "https", hostname: "laboratoriolaca.com" },
     ],
   },
 };

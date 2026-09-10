@@ -41,10 +41,34 @@ pnpm dev            # http://localhost:3000
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | End-to-end (Playwright; hace `build` + `start`) |
 | `pnpm ingest` | **Etapa 1** — baja el catálogo crudo de la API de serlaca → `data/input/serlaca-raw.json` (spec [`0009`](./specs/0009-api-ingest/spec.md)) |
-| `pnpm transform` | **Etapa 2** — `data/input/` (o `--in <csv>`) → `public/data/products.json` con descuento + margen + limpieza |
+| `pnpm transform` | **Etapa 2** — `data/input/` (o `--in <csv>`) → `public/data/products.json` con margen + limpieza |
 | `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista en el output (`.next/`, `public/data/`) — RNF-03 |
+| `pnpm gate` | Corre todo lo anterior en orden (typecheck · lint · test · build · check:leak · e2e) |
+| `pnpm ship` | `pnpm gate` y, si pasa, `vercel deploy --prod` (deploy a producción) |
+| `pnpm ship:preview` | `pnpm gate` y `vercel deploy` (URL de preview) |
 
-Gate antes de deploy: `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:leak && pnpm test:e2e`.
+## Deploy
+
+Hosting: **Vercel** (proyecto `renovarte`), free tier. Requiere el CLI de Vercel
+instalado y logueado una vez:
+
+```bash
+npm i -g vercel   # o: pnpm add -g vercel
+vercel login
+```
+
+Flujo recomendado:
+
+```bash
+git add -A && git commit -m "..."   # dejá el trabajo commiteado primero
+git push
+pnpm ship                           # gate completo + deploy a producción
+```
+
+`pnpm ship` **aborta** si falla cualquier chequeo (no sube nada roto). El CLI
+sube el código y buildea en Vercel; usa `.vercel/project.json` para saber a qué
+proyecto apunta. Si el repo está conectado a Vercel por Git, un `git push` a
+`main` también dispara el deploy — en ese caso `pnpm deploy` es opcional.
 
 ## Datos del catálogo
 
