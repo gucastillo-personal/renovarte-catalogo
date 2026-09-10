@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/*
+ * Palette derived from the RenovArte logo direction in RFC-0001 §2.1
+ * (verde salvia / beige). Placeholder values — finalized in spec 0006.
+ */
+@theme {
+  --color-sage-50: #f2f4ee;
+  --color-sage-100: #e8ede1;
+  --color-sage-200: #d3dcc6;
+  --color-sage-300: #b3c29e;
+  --color-sage-400: #94a97a;
+  --color-sage-500: #7c8a6b;
+  --color-sage-600: #5f6b52;
+  --color-sage-700: #4b5441;
+  --color-sage-800: #3d4436;
+  --color-sage-900: #333a2e;
+
+  --color-beige-50: #faf8f3;
+  --color-beige-100: #f4f1e8;
+  --color-beige-200: #ebe4d3;
+  --color-beige-300: #ddd0b6;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-beige-50);
+  color: var(--color-sage-900);
+  font-family: var(--font-sans);
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Complejo Antiage con Omega Plus">
+  <rect width="400" height="400" fill="#e8ede1"/>
+  <rect x="150" y="90" width="100" height="220" rx="14" fill="#7c8a6b"/>
+  <rect x="170" y="60" width="60" height="40" rx="8" fill="#5f6b52"/>
+  <text x="200" y="210" font-family="Georgia, serif" font-size="26" fill="#f4f1e8" text-anchor="middle">Antiage</text>
+  <text x="200" y="360" font-family="Georgia, serif" font-size="20" fill="#5f6b52" text-anchor="middle">RenovArte</text>
+</svg>

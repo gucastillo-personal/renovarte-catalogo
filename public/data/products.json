@@ -1,0 +1,38 @@
+[
+  {
+    "id": "545300004",
+    "proveedor": "LACA",
+    "categoria": "Antiage",
+    "nombre": "Complejo Antiage con Omega Plus",
+    "presentacion": "50 g",
+    "descripcion": "Crema de textura sedosa que otorga una segunda piel luminosa. Combina omegas y activos antioxidantes para uso diario, de día y de noche.",
+    "precio_venta": 35280,
+    "imagen": "/img/laca/545300004.svg",
+    "en_oferta": false,
+    "tags": ["día", "noche", "antiage"]
+  },
+  {
+    "id": "512100031",
+    "proveedor": "LACA",
+    "categoria": "Protección Solar",
+    "nombre": "Protector Solar Facial FPS 50",
+    "presentacion": "60 ml",
+    "descripcion": "Emulsión de rápida absorción con alta protección UVA/UVB, sin dejar residuo blanco. Base ideal para el maquillaje.",
+    "precio_venta": 28900,
+    "imagen": "/img/laca/512100031.svg",
+    "en_oferta": true,
+    "tags": ["día", "rostro", "fotoprotección"]
+  },
+  {
+    "id": "530700018",
+    "proveedor": "LACA",
+    "categoria": "Corporales",
+    "nombre": "Crema Corporal Nutritiva Karité",
+    "presentacion": "200 ml",
+    "descripcion": "Manteca de karité y aceite de almendras para piel muy seca. Deja la piel suave y confortable desde la primera aplicación.",
+    "precio_venta": 19750,
+    "imagen": "/img/laca/530700018.svg",
+    "en_oferta": false,
+    "tags": ["cuerpo", "nutrición", "piel seca"]
+  }
+]
