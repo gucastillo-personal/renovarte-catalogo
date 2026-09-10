@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Imagen no disponible">
+  <rect width="400" height="400" fill="#f4f1e8"/>
+  <rect x="80" y="80" width="240" height="240" rx="16" fill="none" stroke="#b3c29e" stroke-width="4" stroke-dasharray="12 10"/>
+  <circle cx="160" cy="170" r="26" fill="#b3c29e"/>
+  <path d="M110 300l70-80 45 45 40-50 55 85z" fill="#94a97a"/>
+  <text x="200" y="352" font-family="Georgia, serif" font-size="18" fill="#5f6b52" text-anchor="middle">RenovArte</text>
+</svg>

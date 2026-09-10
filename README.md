@@ -40,21 +40,27 @@ pnpm dev            # http://localhost:3000
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | End-to-end (Playwright; hace `build` + `start`) |
+| `pnpm ingest [csv]` | Regenera `public/data/products.json` desde un CSV de costos (default `data/raw/serlaca_export.csv`) — spec [`0002`](./specs/0002-ingest-script/spec.md) |
 | `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista en el output (`.next/`, `public/data/`) — RNF-03 |
 
 Gate antes de deploy: `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:leak && pnpm test:e2e`.
 
 ## Datos del catálogo
 
-Hoy `public/data/products.json` tiene datos semilla. El flujo real de
-actualización (spec [`0002`](./specs/0002-ingest-script/spec.md)) será:
+`public/data/products.json` se **genera** con `pnpm ingest`. Hoy sale de
+`data/raw/serlaca_export.sample.csv` (números ficticios, commiteado). Flujo real
+de actualización:
 
 1. Exportar el CSV de costos de serlaca a `data/raw/serlaca_export.csv` (gitignored).
 2. `cp .env.example .env.local` y ajustar `MARGIN_PERCENT_*` (sin `NEXT_PUBLIC_`).
-3. `pnpm ingest` → regenera `public/data/products.json` (público) y
-   `data/private/margin-report.csv` (interno, gitignored — spec
-   [`0007`](./specs/0007-margin-report/spec.md)).
-4. `git commit` + `git push` → deploy automático en Vercel.
+3. `pnpm ingest` → valida columnas, aplica el margen y reescribe
+   `public/data/products.json` (solo campos públicos, RFC §2.4). Salida
+   determinística: correrlo dos veces no cambia el archivo.
+4. `git commit public/data/products.json` + `git push` → deploy en Vercel.
+
+El reporte interno `data/private/margin-report.csv` (costo vs. precio público de
+LACA) es la spec [`0007`](./specs/0007-margin-report/spec.md), todavía no
+implementado.
 
 ## Seguridad de negocio
 

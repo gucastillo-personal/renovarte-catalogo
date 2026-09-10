@@ -2,10 +2,12 @@
 # Cost / margin inputs and the internal report must never be committed.
 .env
 .env*.local
-/data/raw/
+/data/raw/*
+!/data/raw/serlaca_export.sample.csv
 /data/private/
 
 # NOTE: /data/reference/ IS committed on purpose (public LACA market prices).
+# NOTE: data/raw/serlaca_export.sample.csv IS committed (fake numbers, onboarding + tests).
 
 # --- Node / Next.js ---
 /node_modules

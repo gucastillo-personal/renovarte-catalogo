@@ -35,7 +35,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | ID | Feature | Status |
 |----|---------|--------|
 | [0001](./0001-walking-skeleton/spec.md) | Walking skeleton (scaffold + grid + detail + deploy) | In progress — code complete, deploy pending |
-| [0002](./0002-ingest-script/spec.md) | Ingest script (CSV → products.json, margin from env) | Backlog |
+| [0002](./0002-ingest-script/spec.md) | Ingest script (CSV → products.json, margin from env) | Built (unit-tested); RF-06/07/08 |
 | [0003](./0003-category-filter/spec.md) | Category filter | Backlog |
 | [0004](./0004-search/spec.md) | Name search | Backlog |
 | [0005](./0005-offer-indicator/spec.md) | Offer indicator | Backlog |
@@ -52,12 +52,12 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | RF-03 | Search by text (name) | 0004 | Backlog |
 | RF-04 | Product detail page | 0001 | Built (SSG + e2e green); live after deploy |
 | RF-05 | Mark products on offer | 0005 | Backlog (badge rendered in 0001, full behavior in 0005) |
-| RF-06 | Price = cost + configurable margin; never show cost | 0002 | Backlog |
-| RF-07 | Catalog updated by a local script regenerating the data file | 0002 | Backlog |
-| RF-08 | Margin configurable by env var, no code change | 0002 | Backlog |
+| RF-06 | Price = cost + configurable margin; never show cost | 0002 | Built — `computeSalePrice`, output has no cost key (unit-tested) |
+| RF-07 | Catalog updated by a local script regenerating the data file | 0002 | Built — `pnpm ingest`, deterministic output |
+| RF-08 | Margin configurable by env var, no code change | 0002 | Built — `MARGIN_PERCENT_DEFAULT` + per-category override (unit-tested) |
 | RF-09 | Internal (non-public) report: own price vs LACA public price | 0007 | Backlog |
 | RNF-01 | $0 hosting / infra (free tier) | 0001 | Pending Vercel deploy (T15) |
 | RNF-02 | Fast initial load (static catalog, no runtime backend/DB) | 0001 | Built — build output all Static/SSG |
-| RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0007 | Enforced by `pnpm check:leak` (green) + unit test on seed keys |
+| RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0007 | Enforced — `pnpm check:leak` (green), `buildPublicProduct` emits only public keys, `runIngest` gates output through `validateProducts` |
 | RNF-04 | Responsive, usable on mobile | 0001, 0006 | Built (no h-scroll @390px, e2e); polish in 0006 |
 | RNF-05 | Own repo, documented, portfolio-grade | 0001, 0006 | Built — README + specs; deploy pending |
