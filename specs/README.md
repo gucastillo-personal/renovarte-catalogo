@@ -42,8 +42,10 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | [0004](./0004-search/spec.md) | Name search (SearchBox + CatalogView, filtro cliente) | Built (121 unit + 11 e2e) |
 | [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa |
 | [0006](./0006-branding/spec.md) | Branding (logo real, paleta, tipografía, OG, manifest) | Built (135 unit + 15 e2e) |
-| [0007](./0007-margin-report/spec.md) | Internal margin report | Backlog (usará `price` de la API vía 0009) |
-| [0008](./0008-reference-data/spec.md) | LACA public reference data | ~~Deprecada~~ — la API 0009 ya trae `price` |
+| [0007](./0007-offer-pricing/spec.md) | Precio de oferta (antes / % / ahora) en card y ficha | Spec |
+
+_El reporte interno de márgenes (ex 0007) y la referencia de precios públicos de
+LACA (ex 0008) se eliminaron — se abordarán por otra vía._
 
 ## Traceability matrix (PRD requirement → spec → status)
 
@@ -57,9 +59,9 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | RF-06 | Price = cost + configurable margin; never show cost | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-07 | Catalog updated by a local script regenerating the data file | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-08 | Margin configurable by env var, no code change | 0002 | Done — `MARGIN_PERCENT_DEFAULT` + per-category override |
-| RF-09 | Internal (non-public) report: own price vs LACA public price | 0007 (← `price` from 0009; 0008 deprecated) | Backlog |
+| RF-09 | Internal (non-public) report: own price vs LACA public price | — | Sin spec — se abordará por otra vía (ex 0007/0008 eliminadas) |
 | RNF-01 | $0 hosting / infra (free tier) | 0001 | Done — Vercel free tier |
 | RNF-02 | Fast initial load (static catalog, no runtime backend/DB) | 0001, 0009 | Done — all Static/SSG; 0009 keeps ingest out of runtime |
-| RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0007, 0009 | Enforced — `check:leak` green, `buildPublicProduct` emits only public keys, output gated through `validateProducts`; 0009 adds `SERLACA_API_KEY` never in bundle/Vercel |
+| RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0009 | Enforced — `check:leak` green, `buildPublicProduct` emits only public keys, output gated through `validateProducts`; 0009 adds `SERLACA_API_KEY` never in bundle/Vercel |
 | RNF-04 | Responsive, usable on mobile | 0001, 0006 | Done — sin h-scroll a 390/768/1280 (e2e), paleta + tipografía de marca |
 | RNF-05 | Own repo, documented, portfolio-grade | 0001, 0006 | Done — repo + README + specs + docs/brand.md, deployed |
