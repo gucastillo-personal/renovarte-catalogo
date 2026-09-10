@@ -4,12 +4,22 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 import { slugifyCategoria } from "../../src/lib/category-slug";
-
-type CatalogProduct = { id: string; nombre: string; categoria: string };
+import { matchProducts } from "../../src/lib/search";
+import type { Product } from "../../src/lib/types";
 
 const products = JSON.parse(
   readFileSync(path.join(process.cwd(), "public", "data", "products.json"), "utf-8"),
-) as CatalogProduct[];
+) as Product[];
+
+// A query that matches some but not all products, derived from real data.
+const searchQuery =
+  [...new Set(products.map((p) => p.nombre.split(/\s+/)[0]!.toLowerCase()))].find(
+    (w) => {
+      const n = matchProducts(w, products).length;
+      return n >= 1 && n < products.length;
+    },
+  ) ?? "serum";
+const searchMatches = matchProducts(searchQuery, products).length;
 
 const categoryCounts = new Map<string, number>();
 for (const p of products) {
@@ -109,4 +119,40 @@ test("category page has no horizontal scroll at 390px (AC-4)", async ({ page }) 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+// --- Name search (spec 0004) ---
+
+test("typing filters the grid client-side, clearing restores it (RF-03, AC-4)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const cards = page.locator("main ul > li");
+  await expect(cards).toHaveCount(products.length);
+
+  const box = page.getByRole("searchbox", { name: "Buscar producto" });
+  await box.fill(searchQuery);
+  await expect(cards).toHaveCount(searchMatches);
+  await expect(cards).not.toHaveCount(products.length);
+  await expect(page).toHaveURL(/\/$/); // no navigation — purely client-side
+  await expect(page.locator("main")).toContainText(new RegExp(`resultados? para`, "i"));
+
+  await page.getByRole("button", { name: "Limpiar búsqueda" }).click();
+  await expect(cards).toHaveCount(products.length);
+});
+
+test("a query with no matches shows the empty state (AC-3)", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("searchbox", { name: "Buscar producto" }).fill("zzzznoexiste");
+  await expect(page.locator("main ul > li")).toHaveCount(0);
+  await expect(page.getByText(/no encontramos productos/i)).toBeVisible();
+});
+
+test("search inside a category stays within that category (AC-5)", async ({ page }) => {
+  await page.goto(`/categoria/${sampleSlug}`);
+  const cards = page.locator("main ul > li");
+  await expect(cards).toHaveCount(sampleCount);
+  await page.getByRole("searchbox", { name: "Buscar producto" }).fill("zzzznoexiste");
+  await expect(cards).toHaveCount(0);
+  await expect(page.getByText(/no encontramos productos/i)).toBeVisible();
 });

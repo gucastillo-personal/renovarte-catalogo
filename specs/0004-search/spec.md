@@ -1,6 +1,6 @@
 # 0004 — Name search
 
-**Status:** Backlog
+**Status:** Built. Filtro cliente (sin red), gate verde (121 unit + 11 e2e).
 **PRD:** RF-03
 **RFC:** §2.5 (`FilterBar`)
 

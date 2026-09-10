@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CatalogView } from "@/components/CatalogView";
 import { CategoryNav } from "@/components/CategoryNav";
-import { ProductGrid } from "@/components/ProductGrid";
 import {
   categoriaFromSlug,
   getCategoryList,
@@ -39,18 +39,13 @@ export default async function CategoryPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-sage-800">
-          {categoria}
-        </h1>
-        <p className="mt-1 text-sage-600">
-          {products.length} producto{products.length === 1 ? "" : "s"}
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight text-sage-800">
+        {categoria}
+      </h1>
 
       <CategoryNav activeSlug={slug} />
 
-      <ProductGrid products={products} />
+      <CatalogView products={products} />
     </div>
   );
 }
