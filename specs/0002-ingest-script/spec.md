@@ -1,8 +1,12 @@
 # 0002 — Ingest script
 
-**Status:** Backlog
+**Status:** Done (commit 307df5a). CSV path implemented + unit-tested.
 **PRD:** RF-06, RF-07, RF-08; RNF-03
 **RFC:** §2.2, §2.3, §2.6
+
+> Follow-up: pulling cost data straight from the serlaca API (instead of a manual
+> CSV export) is **spec 0009**. It reuses this spec's `transform.ts` pipeline;
+> only the input adapter changes.
 
 ## Why
 

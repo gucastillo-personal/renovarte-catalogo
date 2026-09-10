@@ -1,6 +1,9 @@
 # 0008 — LACA public reference data
 
-**Status:** Backlog
+**Status:** Deprecada (2026-09-10). La API de serlaca (spec 0009) devuelve el
+precio público de LACA en el campo `price` de cada producto, así que digitalizar
+el PDF ya no aporta. Se conserva el spec como registro. Si en el futuro hiciera
+falta un precio de lista que la API no cubra, se reabre.
 **PRD:** §10; RFC §1, §2.5, roadmap step 3
 
 ## Why

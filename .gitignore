@@ -4,6 +4,8 @@
 .env*.local
 /data/raw/*
 !/data/raw/serlaca_export.sample.csv
+/data/input/*
+!/data/input/serlaca-raw.sample.json
 /data/private/
 
 # NOTE: /data/reference/ IS committed on purpose (public LACA market prices).

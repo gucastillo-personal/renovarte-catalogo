@@ -40,27 +40,41 @@ pnpm dev            # http://localhost:3000
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | End-to-end (Playwright; hace `build` + `start`) |
-| `pnpm ingest [csv]` | Regenera `public/data/products.json` desde un CSV de costos (default `data/raw/serlaca_export.csv`) — spec [`0002`](./specs/0002-ingest-script/spec.md) |
+| `pnpm ingest` | **Etapa 1** — baja el catálogo crudo de la API de serlaca → `data/input/serlaca-raw.json` (spec [`0009`](./specs/0009-api-ingest/spec.md)) |
+| `pnpm transform` | **Etapa 2** — `data/input/` (o `--in <csv>`) → `public/data/products.json` con descuento + margen + limpieza |
 | `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista en el output (`.next/`, `public/data/`) — RNF-03 |
 
 Gate antes de deploy: `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:leak && pnpm test:e2e`.
 
 ## Datos del catálogo
 
-`public/data/products.json` se **genera** con `pnpm ingest`. Hoy sale de
-`data/raw/serlaca_export.sample.csv` (números ficticios, commiteado). Flujo real
-de actualización:
+`public/data/products.json` se genera en **dos etapas separadas** (descarga vs.
+lógica de negocio — spec [`0009`](./specs/0009-api-ingest/spec.md)):
 
-1. Exportar el CSV de costos de serlaca a `data/raw/serlaca_export.csv` (gitignored).
-2. `cp .env.example .env.local` y ajustar `MARGIN_PERCENT_*` (sin `NEXT_PUBLIC_`).
-3. `pnpm ingest` → valida columnas, aplica el margen y reescribe
-   `public/data/products.json` (solo campos públicos, RFC §2.4). Salida
-   determinística: correrlo dos veces no cambia el archivo.
+```
+pnpm ingest      # 1. API serlaca → data/input/serlaca-raw.json   (crudo, sin tocar)
+pnpm transform   # 2. data/input/ → public/data/products.json     (descuento + margen + limpieza)
+```
+
+1. `cp .env.example .env.local` y completar. **Etapa 1**: `SERLACA_API_KEY`,
+   `SERLACA_LACA_ID`. **Etapa 2**: `MARGIN_PERCENT_DEFAULT` (+ overrides por
+   categoría opcionales), `SERLACA_IMAGE_BASE`. Todo **sin** `NEXT_PUBLIC_`,
+   nunca en Vercel.
+2. `pnpm ingest` → `data/input/serlaca-raw.json` (gitignored, ~1 MB; se re-baja
+   cuando haga falta).
+3. `pnpm transform` → excluye productos de uso profesional exclusivo, toma el
+   `price` como costo y le suma `MARGIN_PERCENT`, limpia nombres de categoría,
+   reescribe `public/data/products.json`. Determinístico: correrlo dos veces no
+   cambia el archivo.
 4. `git commit public/data/products.json` + `git push` → deploy en Vercel.
 
-El reporte interno `data/private/margin-report.csv` (costo vs. precio público de
-LACA) es la spec [`0007`](./specs/0007-margin-report/spec.md), todavía no
-implementado.
+**Fallback CSV** (spec [`0002`](./specs/0002-ingest-script/spec.md)):
+`pnpm transform --in data/raw/serlaca_export.sample.csv` — salta la etapa 1 y
+transforma un CSV local directamente.
+
+El reporte interno `data/private/margin-report.csv` (precio propio vs. precio
+público de LACA) es la spec [`0007`](./specs/0007-margin-report/spec.md), todavía
+no implementado.
 
 ## Seguridad de negocio
 

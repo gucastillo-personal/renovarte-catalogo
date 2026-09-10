@@ -2,7 +2,11 @@
 
 **Status:** Backlog
 **PRD:** RF-02
-**RFC:** §2.5 (`app/categoria/[slug]/page.tsx`, `FilterBar`, `CategoryNav`)
+**RFC:** §2.5 (`app/categoria/[slug]/page.tsx`, `CategoryNav`)
+
+> Impl note: `getCategories()` already exists in `src/lib/products.ts` (added in
+> 0002). Tailwind v4 — style with the `sage`/`beige` tokens from `globals.css`,
+> no `tailwind.config.ts`. Next 16 — `params` is a `Promise`, `await` it.
 
 ## Why
 

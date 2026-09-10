@@ -6,18 +6,21 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { PRODUCT_KEYS, validateProducts, type Product } from "@/lib/types";
 
-import { runIngest } from "../../scripts/lib/run";
+import { buildCatalog, buildCatalogFromCsv } from "../../scripts/lib/build-catalog";
+import type { CostRow } from "../../scripts/lib/cost-row";
 import {
-  buildPublicProduct,
-  computeSalePrice,
   parseARSNumber,
   parseBoolean,
   parseTags,
+  readCsvCostRows,
+  validateColumns,
+} from "../../scripts/lib/sources/csv";
+import {
+  buildPublicProduct,
+  computeSalePrice,
   resolveMargin,
   toProductsJson,
-  validateColumns,
-  type CsvRow,
-} from "../../scripts/lib/transform";
+} from "../../scripts/lib/pricing";
 
 const SAMPLE_CSV = path.join(process.cwd(), "data", "raw", "serlaca_export.sample.csv");
 const PUBLIC_DIR = path.join(process.cwd(), "public");
@@ -125,39 +128,62 @@ describe("computeSalePrice", () => {
 });
 
 describe("buildPublicProduct", () => {
-  const row: CsvRow = {
-    codigo: " 900 ",
-    nombre: " Serum ",
+  const row: CostRow = {
+    codigo: "900",
+    nombre: "Serum",
     categoria: "Antiage",
     presentacion: "30 ml",
     descripcion: "desc",
-    precio_costo: "10.000",
-    en_oferta: "si",
-    tags: "a|b",
+    precio_costo: 10000,
+    en_oferta: true,
+    tags: ["a", "b"],
+    imagen: "/img/placeholder.svg",
   };
 
-  it("emits exactly the public schema keys, in schema order, no cost/margin", () => {
-    const product = buildPublicProduct(row, { margin: 20, imagen: "/img/placeholder.svg" });
+  it("emits exactly the public schema keys, in schema order, no cost", () => {
+    const product = buildPublicProduct(row, { margin: 20 });
     expect(Object.keys(product)).toEqual([...PRODUCT_KEYS]);
-    expect(product).not.toHaveProperty("costo");
     expect(product).not.toHaveProperty("precio_costo");
     expect(product).not.toHaveProperty("margen");
   });
 
-  it("computes precio_venta from cost + margin and trims fields", () => {
-    const product = buildPublicProduct(row, { margin: 20, imagen: "/x.svg" });
+  it("computes precio_venta from cost + margin and carries public fields", () => {
+    const product = buildPublicProduct(row, { margin: 20 });
     expect(product.precio_venta).toBe(12000);
     expect(product.id).toBe("900");
-    expect(product.nombre).toBe("Serum");
     expect(product.proveedor).toBe("LACA");
     expect(product.en_oferta).toBe(true);
     expect(product.tags).toEqual(["a", "b"]);
   });
+});
 
-  it("throws when a required field is empty", () => {
-    expect(() =>
-      buildPublicProduct({ ...row, precio_costo: "" }, { margin: 20, imagen: "/x" }),
-    ).toThrow(/campo "precio_costo" vacío/);
+describe("readCsvCostRows", () => {
+  it("trims fields and parses numbers / tags / booleans", () => {
+    const dir = makeTmpDir();
+    const csv = path.join(dir, "one.csv");
+    writeFileSync(
+      csv,
+      `${FULL_HEADER}\n` +
+        ` 900 , Serum , Antiage , 30 ml , desc ,10.000, si , a|b \n`,
+    );
+    const { rows } = readCsvCostRows(csv, { publicDir: PUBLIC_DIR });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      codigo: "900",
+      nombre: "Serum",
+      precio_costo: 10000,
+      en_oferta: true,
+      tags: ["a", "b"],
+    });
+  });
+
+  it("throws when a required field value is empty, naming the line", () => {
+    const dir = makeTmpDir();
+    const csv = path.join(dir, "bad.csv");
+    writeFileSync(csv, `${FULL_HEADER}\n1,X,Antiage,50 g,desc,,no,a\n`);
+    expect(() => readCsvCostRows(csv, { publicDir: PUBLIC_DIR })).toThrow(
+      /línea 2: campo "precio_costo" vacío/,
+    );
   });
 });
 
@@ -186,10 +212,10 @@ describe("toProductsJson", () => {
 // orchestrator
 // ---------------------------------------------------------------------------
 
-describe("runIngest", () => {
+describe("buildCatalogFromCsv", () => {
   function ingestSample(env: Record<string, string | undefined>) {
     const outPath = path.join(makeTmpDir(), "products.json");
-    const result = runIngest({ csvPath: SAMPLE_CSV, outPath, env, publicDir: PUBLIC_DIR });
+    const result = buildCatalogFromCsv({ csvPath: SAMPLE_CSV, outPath, env, publicDir: PUBLIC_DIR });
     return { outPath, result };
   }
 
@@ -203,15 +229,15 @@ describe("runIngest", () => {
   it("is idempotent — byte-identical output on a second run (AC-3)", () => {
     const env = { MARGIN_PERCENT_DEFAULT: "20" };
     const outPath = path.join(makeTmpDir(), "products.json");
-    runIngest({ csvPath: SAMPLE_CSV, outPath, env, publicDir: PUBLIC_DIR });
+    buildCatalogFromCsv({ csvPath: SAMPLE_CSV, outPath, env, publicDir: PUBLIC_DIR });
     const first = readFileSync(outPath, "utf-8");
-    runIngest({ csvPath: SAMPLE_CSV, outPath, env, publicDir: PUBLIC_DIR });
+    buildCatalogFromCsv({ csvPath: SAMPLE_CSV, outPath, env, publicDir: PUBLIC_DIR });
     expect(readFileSync(outPath, "utf-8")).toBe(first);
   });
 
   it("applies MARGIN_PERCENT_DEFAULT to every product (AC-2)", () => {
     const { result } = ingestSample({ MARGIN_PERCENT_DEFAULT: "35" });
-    const byId = Object.fromEntries(result.products.map((p) => [p.id, p.precio_venta]));
+    const byId = Object.fromEntries(result.products.map((p: { id: string; precio_venta: number }) => [p.id, p.precio_venta]));
     expect(byId).toEqual({
       "545300004": 39690, // 29400 * 1.35
       "512100031": 32535, // 24100 * 1.35
@@ -224,7 +250,7 @@ describe("runIngest", () => {
       MARGIN_PERCENT_DEFAULT: "20",
       MARGIN_PERCENT_ANTIAGE: "10",
     });
-    const byId = Object.fromEntries(result.products.map((p) => [p.id, p.precio_venta]));
+    const byId = Object.fromEntries(result.products.map((p: { id: string; precio_venta: number }) => [p.id, p.precio_venta]));
     expect(byId["545300004"]).toBe(32340); // Antiage: 29400 * 1.10
     expect(byId["512100031"]).toBe(28920); // still 20%
     expect(byId["530700018"]).toBe(19800); // still 20%
@@ -240,7 +266,7 @@ describe("runIngest", () => {
     );
     const outPath = path.join(dir, "products.json");
     expect(() =>
-      runIngest({ csvPath: csv, outPath, env: {}, publicDir: PUBLIC_DIR }),
+      buildCatalogFromCsv({ csvPath: csv, outPath, env: {}, publicDir: PUBLIC_DIR }),
     ).toThrow(/faltan columnas requeridas:.*precio_costo/);
     expect(existsSync(outPath)).toBe(false);
   });
@@ -256,7 +282,7 @@ describe("runIngest", () => {
     );
     const outPath = path.join(dir, "products.json");
     expect(() =>
-      runIngest({ csvPath: csv, outPath, env: {}, publicDir: PUBLIC_DIR }),
+      buildCatalogFromCsv({ csvPath: csv, outPath, env: {}, publicDir: PUBLIC_DIR }),
     ).toThrow(/ingesta abortada[\s\S]*línea 3/);
     expect(existsSync(outPath)).toBe(false);
   });
@@ -266,5 +292,34 @@ describe("runIngest", () => {
     const rows = JSON.parse(readFileSync(outPath, "utf-8")) as Record<string, unknown>[];
     const allowed = new Set<string>(PRODUCT_KEYS);
     for (const row of rows) expect(new Set(Object.keys(row))).toEqual(allowed);
+  });
+});
+
+describe("buildCatalog category cleanup (spec 0009 AC-5)", () => {
+  const baseRow: CostRow = {
+    codigo: "1",
+    nombre: "X",
+    categoria: "",
+    presentacion: "50 g",
+    descripcion: "d",
+    precio_costo: 100,
+    en_oferta: false,
+    tags: [],
+    imagen: "/img/placeholder.svg",
+  };
+
+  it("strips trailing dots and merges typo duplicates", () => {
+    const outPath = path.join(makeTmpDir(), "products.json");
+    const { products } = buildCatalog(
+      [
+        { ...baseRow, codigo: "1", categoria: "Uñas." },
+        { ...baseRow, codigo: "2", categoria: "Uñas" },
+        { ...baseRow, codigo: "3", categoria: "Proteccion Solar." },
+      ],
+      { env: { MARGIN_PERCENT_DEFAULT: "20" }, outPath },
+    );
+    const cats = new Set(products.map((p) => p.categoria));
+    expect(cats).toEqual(new Set(["Uñas", "Protección Solar"]));
+    for (const c of cats) expect(c.endsWith(".")).toBe(false);
   });
 });

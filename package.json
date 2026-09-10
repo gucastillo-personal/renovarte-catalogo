@@ -12,6 +12,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "ingest": "tsx scripts/ingest.ts",
+    "transform": "tsx scripts/transform.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

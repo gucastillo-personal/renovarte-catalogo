@@ -6,6 +6,7 @@
 | **Fecha** | 2026-09-10 |
 | **PRD relacionado** | [PRD — Catálogo RenovArte](../PRD-catalogo-renovarte.md) |
 | **Reemplaza** | — |
+| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)) |
 
 ## 1. Contexto
 
@@ -37,6 +38,28 @@ El script de ingesta corre **localmente**, nunca en el servidor de producción. 
 
 - `public/data/products.json`: consumido por la web. Contiene únicamente campos seguros para exponer (nombre, categoría, descripción, imagen, `precio_venta` ya calculado).
 - `data/private/margin-report.csv`: uso interno exclusivo del dueño del negocio. Contiene costo, margen aplicado y comparación contra el precio público de LACA. **No se commitea al repositorio** (incluido en `.gitignore`).
+
+> **Enmienda 2026-09-10 (spec 0009).** La fuente de costo de `scripts/ingest.ts`
+> puede ser **(a)** un export CSV local (`data/raw/serlaca_export.csv`,
+> implementado en [spec 0002](../../specs/0002-ingest-script/spec.md)) **o
+> (b)** la API de serlaca `Products/ReadProducts` directamente, autenticada con
+> `SERLACA_API_KEY` (en `.env.local`, sin prefijo `NEXT_PUBLIC_`, nunca en
+> Vercel). Ambas rutas producen las mismas filas de costo y comparten la misma
+> pipeline de transformación/validación y las mismas salidas. La API es la ruta
+> por defecto; el CSV queda como fallback offline. El script sigue corriendo
+> **localmente** (o en un GitHub Action programado — fuera de este RFC); **no**
+> se introduce fetch en runtime ni en Vercel (mantiene "sin backend en runtime",
+> §3).
+
+Diagrama actualizado:
+
+```
+API serlaca (costo)  ──┐   [SERLACA_API_KEY]
+  ó CSV local (costo) ──┤
+                        ├──> scripts/ingest.ts ──> public/data/products.json   (público)
+JSON precios LACA  ─────┘         │
+   (referencia, del PDF)          └──> data/private/margin-report.csv          (privado, gitignored)
+```
 
 ### 2.3 Cálculo de precio
 
