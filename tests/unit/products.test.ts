@@ -13,7 +13,7 @@ import {
   getProductsByCategoria,
   getProductsOnOffer,
 } from "@/lib/products";
-import { PRODUCT_KEYS } from "@/lib/types";
+import { PRODUCT_KEYS, REQUIRED_PRODUCT_KEYS } from "@/lib/types";
 
 describe("getAllProducts", () => {
   it("loads every seed product", () => {
@@ -102,11 +102,22 @@ describe("public/data/products.json (guards RNF-03 / RFC §2.4)", () => {
     ),
   );
 
-  it("is an array of objects with exactly the RFC §2.4 keys", () => {
+  it("is an array of objects with the RFC §2.4 keys (+ optional offer pricing)", () => {
     expect(Array.isArray(raw)).toBe(true);
     const allowed = new Set<string>(PRODUCT_KEYS);
     for (const row of raw as Record<string, unknown>[]) {
-      expect(new Set(Object.keys(row))).toEqual(allowed);
+      const keys = new Set(Object.keys(row));
+      for (const required of REQUIRED_PRODUCT_KEYS) expect(keys.has(required)).toBe(true);
+      for (const key of keys) expect(allowed.has(key)).toBe(true);
+    }
+  });
+
+  it("precio_regular / descuento_pct only appear together, and only on offers", () => {
+    for (const row of raw as Record<string, unknown>[]) {
+      const hasRegular = "precio_regular" in row;
+      const hasDiscount = "descuento_pct" in row;
+      expect(hasRegular).toBe(hasDiscount);
+      if (hasRegular) expect(row.en_oferta).toBe(true);
     }
   });
 

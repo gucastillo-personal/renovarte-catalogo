@@ -4,7 +4,12 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { PRODUCT_KEYS, validateProducts, type Product } from "@/lib/types";
+import {
+  PRODUCT_KEYS,
+  REQUIRED_PRODUCT_KEYS,
+  validateProducts,
+  type Product,
+} from "@/lib/types";
 
 import { buildCatalog, buildCatalogFromCsv } from "../../scripts/lib/build-catalog";
 import type { CostRow } from "../../scripts/lib/cost-row";
@@ -140,9 +145,9 @@ describe("buildPublicProduct", () => {
     imagen: "/img/placeholder.svg",
   };
 
-  it("emits exactly the public schema keys, in schema order, no cost", () => {
+  it("emits exactly the required schema keys (no offer), no cost", () => {
     const product = buildPublicProduct(row, { margin: 20 });
-    expect(Object.keys(product)).toEqual([...PRODUCT_KEYS]);
+    expect(Object.keys(product)).toEqual([...REQUIRED_PRODUCT_KEYS]);
     expect(product).not.toHaveProperty("precio_costo");
     expect(product).not.toHaveProperty("margen");
   });
@@ -154,6 +159,24 @@ describe("buildPublicProduct", () => {
     expect(product.proveedor).toBe("LACA");
     expect(product.en_oferta).toBe(true);
     expect(product.tags).toEqual(["a", "b"]);
+  });
+
+  it("with a discount (spec 0007): adds precio_regular/descuento_pct, in schema order", () => {
+    const product = buildPublicProduct(row, { margin: 20, descuentoPct: 10 });
+    expect(Object.keys(product)).toEqual([
+      "id", "proveedor", "categoria", "nombre", "presentacion", "descripcion",
+      "precio_venta", "precio_regular", "descuento_pct", "imagen", "en_oferta", "tags",
+    ]);
+    expect(product.precio_regular).toBe(12000); // base (margin only)
+    expect(product.descuento_pct).toBe(10);
+    expect(product.precio_venta).toBe(10800); // round(12000 * 0.9)
+  });
+
+  it("descuentoPct: 0 behaves like no discount", () => {
+    const product = buildPublicProduct(row, { margin: 20, descuentoPct: 0 });
+    expect(product).not.toHaveProperty("precio_regular");
+    expect(product).not.toHaveProperty("descuento_pct");
+    expect(product.precio_venta).toBe(12000);
   });
 });
 
@@ -287,11 +310,15 @@ describe("buildCatalogFromCsv", () => {
     expect(existsSync(outPath)).toBe(false);
   });
 
-  it("every written row has exactly the public schema keys (AC-5)", () => {
+  it("every written row has the required keys and only allowed ones (AC-5)", () => {
     const { outPath } = ingestSample({ MARGIN_PERCENT_DEFAULT: "20" });
     const rows = JSON.parse(readFileSync(outPath, "utf-8")) as Record<string, unknown>[];
     const allowed = new Set<string>(PRODUCT_KEYS);
-    for (const row of rows) expect(new Set(Object.keys(row))).toEqual(allowed);
+    for (const row of rows) {
+      const keys = new Set(Object.keys(row));
+      for (const required of REQUIRED_PRODUCT_KEYS) expect(keys.has(required)).toBe(true);
+      for (const key of keys) expect(allowed.has(key)).toBe(true);
+    }
   });
 });
 
@@ -351,16 +378,19 @@ describe("buildCatalog offers (spec 0005)", () => {
     });
   });
 
-  it("applies descuentoPct to precio_venta of that product only", () => {
+  it("applies descuentoPct to precio_venta and keeps precio_regular (spec 0007)", () => {
     const outPath = path.join(makeTmpDir(), "products.json");
     const { products } = buildCatalog([row("1"), row("2")], {
       env: { MARGIN_PERCENT_DEFAULT: "20" }, // precio_venta base = 100 * 1.2 = 120
       outPath,
       offers: new Map([["2", { descuentoPct: 10 }]]),
     });
-    const byId = Object.fromEntries(products.map((p) => [p.id, p.precio_venta]));
-    expect(byId["1"]).toBe(120);
-    expect(byId["2"]).toBe(108); // round(120 * 0.9)
+    const byId = Object.fromEntries(products.map((p) => [p.id, p]));
+    expect(byId["1"]!.precio_venta).toBe(120);
+    expect(byId["1"]).not.toHaveProperty("precio_regular");
+    expect(byId["2"]!.precio_venta).toBe(108); // round(120 * 0.9)
+    expect(byId["2"]!.precio_regular).toBe(120);
+    expect(byId["2"]!.descuento_pct).toBe(10);
   });
 
   it("leaves everything false without an offers map", () => {

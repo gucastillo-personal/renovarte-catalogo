@@ -6,7 +6,7 @@
 | **Fecha** | 2026-09-10 |
 | **PRD relacionado** | [PRD — Catálogo RenovArte](../PRD-catalogo-renovarte.md) |
 | **Reemplaza** | — |
-| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)) |
+| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)) |
 
 ## 1. Contexto
 
@@ -101,6 +101,27 @@ codigo,nombre,costo,margen_%,precio_venta,precio_publico_laca,diferencia_$,difer
 ```
 
 El campo `proveedor` está presente desde el día uno del modelo, aunque hoy solo haya un proveedor cargado (LACA), para no requerir un cambio de esquema cuando se sume el segundo proveedor (ver PRD, fase 4).
+
+> **Enmienda 2026-09-11 (spec 0007 — precio de oferta).** Dos campos
+> **opcionales**, presentes solo cuando el producto está en oferta con
+> descuento (`data/offers.json`, `descuento_pct > 0` — spec 0005):
+>
+> ```json
+> {
+>   "...": "...",
+>   "precio_venta": 24408,
+>   "precio_regular": 27120,
+>   "descuento_pct": 10,
+>   "en_oferta": true
+> }
+> ```
+>
+> `precio_venta` sigue siendo el precio final (el que se cobra); `precio_regular`
+> es el precio sin la promo, para mostrar "antes / ahora" en la UI. Ninguno de
+> los dos es costo ni margen — siguen sin aparecer en ningún artefacto público
+> (constitution §I). Las specs ex-0007 (reporte de márgenes) y ex-0008
+> (referencia de precios públicos de LACA) se eliminaron; el `margin-report.csv`
+> descripto abajo queda como diseño original, sin spec activa.
 
 ### 2.5 Estructura de carpetas
 

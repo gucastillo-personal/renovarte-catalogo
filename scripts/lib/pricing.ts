@@ -35,11 +35,23 @@ export function computeSalePrice(costo: number, marginPercent: number): number {
 
 /**
  * Build one public product from a normalised `CostRow`. The returned object has
- * exactly the keys of the public schema (RFC §2.4) in schema order — the cost
- * (`precio_costo`) and the margin are consumed here and never stored
- * (constitution §I).
+ * exactly the keys of the public schema (RFC §2.4, amended by spec 0007) in
+ * schema order — the cost (`precio_costo`) and the margin are consumed here and
+ * never stored (constitution §I).
+ *
+ * `descuentoPct` (spec 0007, from `data/offers.json`): when > 0, the regular
+ * price is kept as `precio_regular` and `precio_venta` becomes the discounted
+ * price. Omitted or 0 -> no offer-pricing fields, `precio_venta` is the regular
+ * price (unchanged behaviour).
  */
-export function buildPublicProduct(row: CostRow, opts: { margin: number }): Product {
+export function buildPublicProduct(
+  row: CostRow,
+  opts: { margin: number; descuentoPct?: number },
+): Product {
+  const regular = computeSalePrice(row.precio_costo, opts.margin);
+  const descuentoPct = opts.descuentoPct;
+  const hasDiscount = descuentoPct !== undefined && descuentoPct > 0;
+
   return {
     id: row.codigo,
     proveedor: "LACA",
@@ -47,7 +59,8 @@ export function buildPublicProduct(row: CostRow, opts: { margin: number }): Prod
     nombre: row.nombre,
     presentacion: row.presentacion,
     descripcion: row.descripcion,
-    precio_venta: computeSalePrice(row.precio_costo, opts.margin),
+    precio_venta: hasDiscount ? Math.round(regular * (1 - descuentoPct / 100)) : regular,
+    ...(hasDiscount ? { precio_regular: regular, descuento_pct: descuentoPct } : {}),
     imagen: row.imagen,
     en_oferta: row.en_oferta,
     tags: row.tags,

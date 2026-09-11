@@ -1,6 +1,6 @@
 # 0007 — Precio de oferta (antes / % / ahora)
 
-**Status:** Spec
+**Status:** Built. products.json guarda precio_regular/descuento_pct cuando hay promo; ProductPrice + OfferBadge muestran antes/−N%/ahora en card y ficha. Gate verde (143 unit + 17 e2e, 1 skip sin flag-only offer).
 **PRD:** RF-05 (ampliación)
 **RFC:** §2.4 (enmienda — campos opcionales de oferta)
 **Depende de:** 0005 (`data/offers.json` con `descuento_pct`)

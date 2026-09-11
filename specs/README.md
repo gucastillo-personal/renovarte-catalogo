@@ -42,7 +42,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | [0004](./0004-search/spec.md) | Name search (SearchBox + CatalogView, filtro cliente) | Built (121 unit + 11 e2e) |
 | [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa |
 | [0006](./0006-branding/spec.md) | Branding (logo real, paleta, tipografía, OG, manifest) | Built (135 unit + 15 e2e) |
-| [0007](./0007-offer-pricing/spec.md) | Precio de oferta (antes / % / ahora) en card y ficha | Spec |
+| [0007](./0007-offer-pricing/spec.md) | Precio de oferta (antes / % / ahora) en card y ficha | Built (143 unit + 17 e2e) |
 
 _El reporte interno de márgenes (ex 0007) y la referencia de precios públicos de
 LACA (ex 0008) se eliminaron — se abordarán por otra vía._
@@ -55,7 +55,7 @@ LACA (ex 0008) se eliminaron — se abordarán por otra vía._
 | RF-02 | Filter by category | 0003 | Built — 24 páginas de categoría SSG, chip activo con aria-current |
 | RF-03 | Search by text (name) | 0004 | Built — filtro cliente accent-insensitive, sin red; anda dentro de categoría |
 | RF-04 | Product detail page | 0001 | Done — SSG, deployed |
-| RF-05 | Mark products on offer | 0005 | Built — badge en card+ficha, página /ofertas, fuente manual data/offers.json |
+| RF-05 | Mark products on offer | 0005, 0007 | Built — badge/chip en card+ficha; con descuento muestra antes tachado + −N% + precio final (data/offers.json) |
 | RF-06 | Price = cost + configurable margin; never show cost | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-07 | Catalog updated by a local script regenerating the data file | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-08 | Margin configurable by env var, no code change | 0002 | Done — `MARGIN_PERCENT_DEFAULT` + per-category override |

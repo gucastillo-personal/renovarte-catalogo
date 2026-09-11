@@ -46,6 +46,45 @@ describe("isProduct", () => {
   });
 });
 
+describe("isProduct — offer pricing (spec 0007)", () => {
+  const onOffer: Product = {
+    ...valid,
+    en_oferta: true,
+    precio_venta: 900,
+    precio_regular: 1000,
+    descuento_pct: 10,
+  };
+
+  it("accepts well-formed offer pricing", () => {
+    expect(isProduct(onOffer)).toBe(true);
+  });
+
+  it("accepts a product with neither field (no offer / flag-only offer)", () => {
+    expect(isProduct(valid)).toBe(true);
+  });
+
+  it("rejects descuento_pct without precio_regular and vice versa", () => {
+    const { precio_regular, ...withoutRegular } = onOffer;
+    void precio_regular;
+    expect(isProduct(withoutRegular)).toBe(false);
+
+    const { descuento_pct, ...withoutDiscount } = onOffer;
+    void descuento_pct;
+    expect(isProduct(withoutDiscount)).toBe(false);
+  });
+
+  it("rejects precio_regular <= precio_venta", () => {
+    expect(isProduct({ ...onOffer, precio_regular: 900 })).toBe(false);
+    expect(isProduct({ ...onOffer, precio_regular: 800 })).toBe(false);
+  });
+
+  it("rejects descuento_pct out of 1..99 or non-integer", () => {
+    expect(isProduct({ ...onOffer, descuento_pct: 0 })).toBe(false);
+    expect(isProduct({ ...onOffer, descuento_pct: 100 })).toBe(false);
+    expect(isProduct({ ...onOffer, descuento_pct: 10.5 })).toBe(false);
+  });
+});
+
 describe("validateProducts", () => {
   it("returns the typed list for valid input", () => {
     expect(validateProducts([valid])).toEqual([valid]);

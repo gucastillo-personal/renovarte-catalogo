@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { PRODUCT_KEYS, validateProducts } from "@/lib/types";
+import { REQUIRED_PRODUCT_KEYS, validateProducts } from "@/lib/types";
 
 import { buildCatalog } from "../../scripts/lib/build-catalog";
 import {
@@ -203,9 +203,10 @@ describe("API source end to end (fetch stubbed)", () => {
 
     const written: unknown = JSON.parse(readFileSync(outPath, "utf-8"));
     expect(() => validateProducts(written)).not.toThrow();
-    const allowed = new Set<string>(PRODUCT_KEYS);
+    const required = new Set<string>(REQUIRED_PRODUCT_KEYS);
     for (const p of written as Record<string, unknown>[]) {
-      expect(new Set(Object.keys(p))).toEqual(allowed);
+      // no offers passed -> no product should carry the optional 0007 fields.
+      expect(new Set(Object.keys(p))).toEqual(required);
       expect(String((p as { categoria: string }).categoria).endsWith(".")).toBe(false);
     }
 

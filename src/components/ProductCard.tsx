@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { OfferBadge } from "@/components/OfferBadge";
-import { formatARS } from "@/lib/format";
+import { ProductPrice } from "@/components/ProductPrice";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -20,7 +20,9 @@ export function ProductCard({ product }: { product: Product }) {
           unoptimized
           className="h-full w-full object-cover"
         />
-        {product.en_oferta && <OfferBadge className="absolute left-2 top-2" />}
+        {product.en_oferta && (
+          <OfferBadge descuentoPct={product.descuento_pct} className="absolute left-2 top-2" />
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
@@ -28,9 +30,7 @@ export function ProductCard({ product }: { product: Product }) {
           {product.nombre}
         </h2>
         <p className="text-sm text-sage-600">{product.presentacion}</p>
-        <p className="mt-auto pt-2 text-lg font-semibold text-sage-900">
-          {formatARS(product.precio_venta)}
-        </p>
+        <ProductPrice product={product} className="mt-auto pt-2" />
       </div>
     </Link>
   );

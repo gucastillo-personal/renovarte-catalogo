@@ -4,8 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { OfferBadge } from "@/components/OfferBadge";
+import { ProductPrice } from "@/components/ProductPrice";
 import { slugifyCategoria } from "@/lib/category-slug";
-import { formatARS } from "@/lib/format";
 import { getAllProducts, getProductById } from "@/lib/products";
 
 // Only the ids returned by generateStaticParams exist; anything else 404s.
@@ -58,16 +58,16 @@ export default async function ProductPage({
           >
             {product.categoria}
           </Link>
-          {product.en_oferta && <OfferBadge className="text-sm" />}
+          {product.en_oferta && (
+            <OfferBadge descuentoPct={product.descuento_pct} className="text-sm" />
+          )}
         </div>
 
         <h1 className="text-2xl font-semibold tracking-tight text-sage-900">
           {product.nombre}
         </h1>
         <p className="text-sage-600">{product.presentacion}</p>
-        <p className="text-3xl font-semibold text-sage-900">
-          {formatARS(product.precio_venta)}
-        </p>
+        <ProductPrice product={product} size="lg" />
 
         <p className="max-w-prose leading-relaxed text-sage-700">
           {product.descripcion}

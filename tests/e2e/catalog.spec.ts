@@ -202,6 +202,8 @@ test("no horizontal scroll at 768 and 1280 on home, category and detail (AC-4)",
 // --- Offer indicator (spec 0005) ---
 
 const offerProducts = products.filter((p) => p.en_oferta);
+const discounted = offerProducts.find((p) => p.precio_regular !== undefined);
+const flagOnly = offerProducts.find((p) => p.precio_regular === undefined);
 
 test("offer badge + /ofertas reflect the en_oferta products (RF-05)", async ({ page }) => {
   const nav = () => page.getByRole("navigation", { name: "Categorías" });
@@ -212,7 +214,8 @@ test("offer badge + /ofertas reflect the en_oferta products (RF-05)", async ({ p
 
     const first = offerProducts[0]!;
     const card = page.locator(`main ul > li a[href="/producto/${first.id}"]`);
-    await expect(card.getByText("Oferta", { exact: true })).toBeVisible();
+    const badgeText = first.descuento_pct ? `−${first.descuento_pct}%` : "Oferta";
+    await expect(card.getByTestId("offer-badge")).toHaveText(badgeText);
 
     await nav().getByRole("link", { name: "Ofertas" }).click();
     await expect(page).toHaveURL(/\/ofertas$/);
@@ -220,10 +223,52 @@ test("offer badge + /ofertas reflect the en_oferta products (RF-05)", async ({ p
   } else {
     await page.goto("/");
     await expect(nav().getByRole("link", { name: "Ofertas" })).toHaveCount(0);
-    await expect(page.locator("main ul > li").getByText("Oferta", { exact: true })).toHaveCount(0);
-
     const res = await page.goto("/ofertas");
     expect(res?.status()).toBe(200);
     await expect(page.getByText(/no hay ofertas/i)).toBeVisible();
   }
+});
+
+// --- Offer pricing: antes / % / ahora (spec 0007) ---
+
+test("card and detail show previous/final price + −N% for a discounted offer (AC-2)", async ({
+  page,
+}) => {
+  test.skip(!discounted, "no discounted offer in the current catalog");
+  const p = discounted!;
+
+  await page.goto("/ofertas");
+  const card = page.locator(`main ul > li a[href="/producto/${p.id}"]`);
+  await expect(card.getByTestId("offer-badge")).toHaveText(`−${p.descuento_pct}%`);
+  await expect(card.getByTestId("discount-chip")).toHaveText(`−${p.descuento_pct}%`);
+  await expect(card.locator("s")).toContainText(
+    p.precio_regular!.toLocaleString("es-AR"),
+  );
+  await expect(card).toContainText(p.precio_venta.toLocaleString("es-AR"));
+
+  await page.goto(`/producto/${p.id}`);
+  await expect(page.getByTestId("offer-badge")).toHaveText(`−${p.descuento_pct}%`);
+  await expect(page.getByTestId("discount-chip")).toHaveText(`−${p.descuento_pct}%`);
+  await expect(page.locator("main s")).toContainText(
+    p.precio_regular!.toLocaleString("es-AR"),
+  );
+  await expect(page.locator("main")).toContainText(p.precio_venta.toLocaleString("es-AR"));
+});
+
+test("a flag-only offer shows the badge but a single price (AC-3)", async ({ page }) => {
+  test.skip(!flagOnly, "no flag-only offer in the current catalog");
+  const p = flagOnly!;
+  await page.goto(`/producto/${p.id}`);
+  await expect(page.getByTestId("offer-badge")).toHaveText("Oferta");
+  await expect(page.getByTestId("discount-chip")).toHaveCount(0);
+  await expect(page.locator("main s")).toHaveCount(0);
+});
+
+test("a product with no offer shows a single price, no strikethrough (AC-3)", async ({
+  page,
+}) => {
+  const plain = products.find((p) => !p.en_oferta)!;
+  await page.goto(`/producto/${plain.id}`);
+  await expect(page.locator("main s")).toHaveCount(0);
+  await expect(page.locator("main")).toContainText(plain.precio_venta.toLocaleString("es-AR"));
 });

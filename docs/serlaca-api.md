@@ -159,7 +159,9 @@ precio_venta = round(price × (1 + MARGIN_PERCENT / 100))
 4. **`en_oferta`: default `false`.** La API no trae ofertas; se marcan a mano en
    `data/offers.json` (`{ "codigos": { "<productCode>": { "descuento_pct"?: N } } }`),
    que `pnpm transform` aplica — badge y, opcional, N% off `precio_venta`
-   (spec 0005).
+   (spec 0005). Con descuento, el producto también guarda `precio_regular`
+   (precio sin la promo) y `descuento_pct`, para mostrar antes/ahora en la UI
+   (spec 0007).
 
 ## Confirmado en la corrida real (2026-09-10)
 

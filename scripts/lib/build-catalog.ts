@@ -79,14 +79,8 @@ export function buildCatalog(
       const margin = marginByCategoria.get(categoria);
       if (margin === undefined) throw new Error(`categoría desconocida: ${categoria}`);
 
-      const product = buildPublicProduct(row, { margin });
-      const descuentoPct = offers?.get(row.codigo.trim())?.descuentoPct ?? 0;
-      if (descuentoPct > 0) {
-        product.precio_venta = Math.round(
-          product.precio_venta * (1 - descuentoPct / 100),
-        );
-      }
-      products.push(product);
+      const descuentoPct = offers?.get(row.codigo.trim())?.descuentoPct;
+      products.push(buildPublicProduct(row, { margin, descuentoPct }));
     } catch (error) {
       errors.push(`item ${index + 1}: ${(error as Error).message}`);
     }
