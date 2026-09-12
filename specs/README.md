@@ -43,9 +43,12 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa |
 | [0006](./0006-branding/spec.md) | Branding (logo real, paleta, tipografía, OG, manifest) | Built (135 unit + 15 e2e) |
 | [0007](./0007-offer-pricing/spec.md) | Precio de oferta (antes / % / ahora) en card y ficha | Built (143 unit + 17 e2e) |
+| [0008](./0008-pdf-price-override/spec.md) | Precio desde PDF de LACA (Profesional=costo / ABC / Catálogo) — match + revisión manual por producto → overlay en `pnpm transform` | Backlog — RFC-0001 actualizado; falta `plan.md`/`tasks.md` |
 
-_El reporte interno de márgenes (ex 0007) y la referencia de precios públicos de
-LACA (ex 0008) se eliminaron — se abordarán por otra vía._
+_El reporte interno de márgenes (ex 0007) se eliminó — se abordará por otra
+vía. El 0008 original ("referencia de precios públicos de LACA") se deprecó y
+el número se reutilizó para esta nueva spec, con un objetivo distinto (fuente
+de precio alternativa, no reporte)._
 
 ## Traceability matrix (PRD requirement → spec → status)
 
@@ -59,7 +62,8 @@ LACA (ex 0008) se eliminaron — se abordarán por otra vía._
 | RF-06 | Price = cost + configurable margin; never show cost | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-07 | Catalog updated by a local script regenerating the data file | 0002, 0009 | Done for CSV (0002); API source in 0009 |
 | RF-08 | Margin configurable by env var, no code change | 0002 | Done — `MARGIN_PERCENT_DEFAULT` + per-category override |
-| RF-09 | Internal (non-public) report: own price vs LACA public price | — | Sin spec — se abordará por otra vía (ex 0007/0008 eliminadas) |
+| RF-09 | Internal (non-public) report: own price vs LACA public price | — | Sin spec — se abordará por otra vía (ex 0007 eliminada); puede apoyarse en `laca_pdf_precios.csv` de 0008 |
+| RF-10 | Precio desde PDF de LACA (ABC/Catálogo), decisión manual por producto; Precio Profesional (costo) nunca publicable | 0008 | Backlog |
 | RNF-01 | $0 hosting / infra (free tier) | 0001 | Done — Vercel free tier |
 | RNF-02 | Fast initial load (static catalog, no runtime backend/DB) | 0001, 0009 | Done — all Static/SSG; 0009 keeps ingest out of runtime |
 | RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0009 | Enforced — `check:leak` green, `buildPublicProduct` emits only public keys, output gated through `validateProducts`; 0009 adds `SERLACA_API_KEY` never in bundle/Vercel |

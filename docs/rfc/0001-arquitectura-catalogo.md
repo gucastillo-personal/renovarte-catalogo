@@ -4,9 +4,9 @@
 |---|---|
 | **Estado** | Aceptado |
 | **Fecha** | 2026-09-10 |
-| **PRD relacionado** | [PRD — Catálogo RenovArte](../PRD-catalogo-renovarte.md) |
+| **PRD relacionado** | [PRD — Catálogo RenovArte](../PRD/PRD-catalogo-renovarte.md) |
 | **Reemplaza** | — |
-| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)) |
+| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)). 2026-09-12 — §1/§2.2/§2.3/§2.4/§2.5: el PDF de precios LACA pasa de referencia pasiva a fuente opcional de `precio_venta` por producto, vía decisión manual del admin (ver [spec 0008](../../specs/0008-pdf-price-override/spec.md)) |
 
 ## 1. Contexto
 
@@ -16,6 +16,17 @@ Tenemos dos fuentes de datos:
 1. **Costo real**: export CSV desde la API interna de serlaca (`api.serlaca.com/Products/ReadProducts`), autenticado con API key propia.
 2. **Precio público de LACA**: catálogo PDF oficial (precio de lista/oferta al consumidor), usado como referencia de mercado, no como precio propio.
 
+> **Enmienda 2026-09-12 (spec 0008).** El PDF de LACA deja de ser solo
+> referencia: trae **tres** columnas por producto (Precio Profesional =
+> costo del revendedor, Precio ABC y Precio Catálogo = precios sugeridos de
+> venta). El admin puede elegir, producto por producto, usar ABC o Catálogo
+> como `precio_venta` publicado en vez del cálculo costo+margen. Precio
+> Profesional sigue siendo estrictamente costo (mismo tratamiento que
+> `precio_costo` — nunca se commitea, nunca es una opción de precio de
+> venta). El PDF pasa así de fuente de referencia de solo lectura a una
+> **tercera fuente de dato de precio**, junto a costo (CSV/API serlaca) y
+> ofertas manuales (`data/offers.json`, spec 0005).
+
 ## 2. Decisión
 
 ### 2.1 Stack
@@ -23,6 +34,13 @@ Tenemos dos fuentes de datos:
 - **Tailwind CSS** para estilos, con paleta extraída del logo (verde salvia / beige).
 - **Sin base de datos**: los datos viven en un archivo `products.json` estático, generado por un script de ingesta.
 - **Vercel** como hosting (free tier, deploy automático por `git push`, apto para Next.js sin configuración adicional).
+
+> **Enmienda 2026-09-12 (spec 0008).** Se suma **Python** (`pdfplumber`), acotado
+> a un único script local (`scripts/pdf/extract.py`) que lee el PDF de LACA y
+> produce datos estructurados en disco. Es la primera pieza no-TypeScript del
+> repo — motivo y alternativas evaluadas en §4. No corre en runtime ni en
+> Vercel; todo lo demás (match, revisión, persistencia de decisiones, overlay
+> en `pnpm transform`) sigue en TypeScript, como el resto del pipeline.
 
 ### 2.2 Flujo de datos
 
@@ -61,6 +79,38 @@ JSON precios LACA  ─────┘         │
    (referencia, del PDF)          └──> data/private/margin-report.csv          (privado, gitignored)
 ```
 
+> **Enmienda 2026-09-12 (spec 0008).** Una segunda pipeline, independiente y
+> corrida a mano, extrae y aplica los precios del PDF de LACA como *overlay*
+> opcional sobre el `precio_venta` que ya sale de la pipeline de costo+margen
+> de arriba — no la reemplaza:
+>
+> ```
+> PDF LACA (precios) ──> scripts/pdf/extract.py     ──┬──> data/raw/…                        (gitignored: tiene Precio Profesional = costo)
+>                         (Python, pdfplumber)         └──> data/reference/laca_pdf_precios.csv   (público: codigo, nombre_pdf, precio_abc,
+>                                                                                                    precio_catalogo, fuente)
+>                                                                   │
+>                                                                   ▼
+>                     public/data/products.json ──────────> página de revisión (local, no desplegada, TypeScript)
+>                     (ya generado arriba)                    match por codigo, admin decide por producto
+>                                                                   │
+>                                                                   ▼
+>                                                   data/reference/precio_pdf_decisiones.json   (público, committed)
+>                                                                   │
+>                                                                   ▼
+>                                              scripts/transform.ts ──> public/data/products.json  (re-generado, overlay aplicado)
+> ```
+>
+> La extracción (único paso en Python) separa lo sensible (Precio Profesional
+> → gitignored, mismo nivel que `data/raw/`) de lo público (ABC, Catálogo →
+> `data/reference/`, committed — dato de mercado, no de costo propio, igual
+> criterio que `laca_precios_publicos.json` más abajo) y termina ahí: no
+> importa nada de Python al resto de la app. Todo lo que sigue —match, la
+> página de revisión, la persistencia de la decisión y el overlay en
+> `pnpm transform`— es TypeScript, igual que el resto del pipeline. La página
+> de revisión corre solo en la máquina del admin, nunca en Vercel; su única
+> salida committeada es `precio_pdf_decisiones.json`. `scripts/transform.ts`
+> vuelve a correr después para aplicar esas decisiones (§2.3).
+
 ### 2.3 Cálculo de precio
 
 ```
@@ -75,6 +125,26 @@ MARGIN_PERCENT_ANTIAGE=30        # opcional, override por categoría
 ```
 
 Motivo de no usar `NEXT_PUBLIC_`: cualquier variable con ese prefijo en Next.js se incluye en el bundle de JavaScript que se descarga en el navegador del cliente. Como estas variables solo las necesita el script de ingesta (que corre en Node, en la máquina del desarrollador, nunca en el cliente), no hay razón para exponerlas, y hacerlo sería un riesgo de seguridad de negocio (permitiría inferir costo y margen).
+
+> **Enmienda 2026-09-12 (spec 0008).** Si existe una decisión guardada para
+> el `codigo` de un producto (`data/reference/precio_pdf_decisiones.json`,
+> `fuente` = `abc` | `catalogo`), esa decisión reemplaza el resultado de
+> `precio_venta = round(costo × (1 + margen%/100))` como el precio "regular"
+> del producto — **antes** de aplicar el descuento de oferta (spec 0007
+> §2.4): si el producto está además en `data/offers.json`, el `%` se calcula
+> sobre el precio elegido del PDF, no sobre costo+margen. Códigos sin
+> decisión guardada, o con `fuente` = `actual`, siguen el cálculo
+> costo+margen sin cambios:
+>
+> ```
+> base = decision(codigo)?.valor ?? round(costo × (1 + margen%/100))
+> precio_venta = en_oferta ? round(base × (1 − descuento_pct/100)) : base
+> ```
+>
+> El margen ya no es la única fuente de `precio_venta`, pero sigue siendo el
+> **default** — la decisión del PDF es siempre una anulación explícita, por
+> producto, nunca automática (constitution §I.1: costo/margen igual nunca se
+> exponen, la decisión solo persiste el valor final elegido).
 
 ### 2.4 Modelo de datos
 
@@ -123,6 +193,29 @@ El campo `proveedor` está presente desde el día uno del modelo, aunque hoy sol
 > (referencia de precios públicos de LACA) se eliminaron; el `margin-report.csv`
 > descripto abajo queda como diseño original, sin spec activa.
 
+> **Enmienda 2026-09-12 (spec 0008).** El schema público de `Product` **no
+> cambia** — `precio_venta` (y `precio_regular`/`descuento_pct` cuando aplica)
+> sigue siendo la única info de precio visible, sea cual sea su origen. Se
+> suman dos archivos nuevos en `data/reference/` (públicos, committed, mismo
+> tratamiento que `laca_precios_publicos.json`):
+>
+> ```json
+> // data/reference/laca_pdf_precios.csv (una fila por producto del PDF)
+> codigo,nombre_pdf,precio_abc,precio_catalogo,fuente
+> 545300004,Complejo Antiage Omega Plus,35280,39200,"LACA Aniversario 2026/2027 (extraído 2026-09-12)"
+> ```
+>
+> ```json
+> // data/reference/precio_pdf_decisiones.json (keyed por codigo)
+> {
+>   "545300004": { "fuente": "abc", "valor": 35280 }
+> }
+> ```
+>
+> Ninguno de los dos contiene Precio Profesional, `precio_costo` ni margen —
+> ese dato vive únicamente en el crudo gitignorado de la extracción (mismo
+> nivel de exposición que `data/raw/serlaca_export.csv`).
+
 ### 2.5 Estructura de carpetas
 
 ```
@@ -131,10 +224,18 @@ renovarte-catalogo/
 ├── .gitignore                          # .env.local, data/raw, data/private
 ├── data/
 │   ├── raw/serlaca_export.csv          # gitignored
+│   ├── raw/laca_pdf_precios.raw.*      # gitignored (spec 0008 — tiene Precio Profesional)
 │   ├── reference/laca_precios_publicos.json   # SÍ se commitea (dato público de mercado)
+│   ├── reference/laca_pdf_precios.csv         # SÍ se commitea (spec 0008 — ABC/Catálogo, sin Precio Profesional)
+│   ├── reference/precio_pdf_decisiones.json   # SÍ se commitea (spec 0008 — decisión del admin por producto)
 │   └── private/margin-report.csv       # gitignored
 ├── scripts/
-│   └── ingest.ts
+│   ├── ingest.ts
+│   ├── pdf/
+│   │   ├── extract.py                  # spec 0008 — único script Python del repo (pdfplumber)
+│   │   ├── requirements.txt            # (o pyproject.toml, a definir en plan.md)
+│   │   └── .venv/                      # gitignored — entorno virtual local
+│   └── …                               # match/revisión/persistencia del PDF (TypeScript), detalle en plan.md de spec 0008
 ├── public/
 │   ├── data/products.json              # generado, consumido por la app
 │   └── img/laca/*.jpg
@@ -224,6 +325,14 @@ fs.writeFileSync("public/data/products.json", JSON.stringify(productosPublicos, 
 | Base de datos (Postgres/Supabase) desde el día 1 | Complejidad y (eventual) costo innecesarios para un catálogo de solo lectura actualizado manualmente |
 | Exponer margen vía `NEXT_PUBLIC_MARGIN_PERCENT` | Filtra información de negocio sensible al bundle del cliente; ver sección 2.3 |
 | Mostrar precio_lista_laca en el JSON público desde el inicio | Válido como estrategia de marketing ("antes/ahora"), pero se deja como decisión de negocio explícita a tomar después, no default (ver PRD RNF-03) |
+
+**Extracción del PDF de LACA (spec 0008, 2026-09-12):**
+
+| Alternativa | Por qué no se eligió |
+|---|---|
+| TypeScript + `pdfjs-dist` (mantener el repo en un solo lenguaje) | El PDF real de LACA no tiene un orden de texto confiable por stream — en algunas páginas el extractor lineal entrega primero todos los precios de la página en un bloque, luego todos los "Ptos", y recién al final los pares código+nombre, sin relación con la fila visual. Reconstruir eso a mano (clustering por posición X/Y, tolerancias, límites de columna que se corren por sección) es lógica nueva de riesgo alto para un dato que termina siendo precio público — se prefirió una librería con heurísticas de tabla ya probadas para ese escenario |
+| Go (`unipdf`/`pdfcpu`) | Ecosistema débil para extracción de tablas con conciencia de layout: las libs libres son de manipulación (merge/split/OCR), no de reconstrucción de tablas sin líneas de grilla; las que sirven para esto son comerciales. No compensa con mejor tooling el costo de sumar un tercer lenguaje |
+| **Elegido: Python + `pdfplumber`**, acotado a `scripts/pdf/extract.py` | Heurísticas de extracción de tabla por posición ya maduras para tablas sin líneas de grilla (como esta, con bloques de color en vez de bordes). Coloca el `parse fiel de tabla` — la parte de mayor riesgo — sobre una librería probada en vez de código nuevo. Costo aceptado: primer archivo no-TypeScript del repo (constitution §III.11), con su propio `requirements.txt`/venv documentado en el README; nunca corre en runtime ni Vercel, y su output es la única interfaz con el resto del pipeline (TypeScript) — `data/raw/…` y `data/reference/laca_pdf_precios.csv` |
 
 ## 5. Roadmap de implementación
 

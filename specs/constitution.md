@@ -4,7 +4,7 @@ Non-negotiable principles for this project. Every spec, plan, PR and review is
 checked against this file. Amending it requires a note in the PR description
 explaining why.
 
-Source of truth: [PRD](../docs/PRD-catalogo-renovarte.md) and
+Source of truth: [PRD](../docs/PRD/PRD-catalogo-renovarte.md) and
 [RFC-0001](../docs/rfc/0001-arquitectura-catalogo.md).
 
 ---
@@ -49,6 +49,15 @@ blocker, not a nit.
 
 11. **TypeScript strict.** No `any` in committed code except at clearly-marked
     parse boundaries, immediately narrowed by a runtime guard.
+
+    > **Enmienda 2026-09-12 (spec 0008).** Excepción única y acotada:
+    > `scripts/pdf/extract.py` (Python + `pdfplumber`), el paso de extracción
+    > de tabla del PDF de precios de LACA — ver
+    > [RFC-0001 §4](../docs/rfc/0001-arquitectura-catalogo.md#4-alternativas-consideradas)
+    > para el porqué. Nunca corre en runtime ni en Vercel; su única interfaz
+    > con el resto del repo (TypeScript) es el archivo que escribe en disco.
+    > No habilita Python en ningún otro lugar del proyecto sin su propia
+    > justificación.
 12. **Mobile-first, responsive, accessible.** Design for ~390px width first; no
     horizontal scroll; semantic HTML; images have `alt` (RNF-04).
 13. **Portfolio-grade.** Readable code, meaningful names, a README that lets a

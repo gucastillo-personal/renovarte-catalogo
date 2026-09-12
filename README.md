@@ -4,7 +4,7 @@ Public, read-only catalog to browse products RenovArte resells (LACA in Phase 1)
 priced with RenovArte's own margin. No cart, no checkout, no database — a static
 `products.json` rendered by Next.js and hosted on Vercel free tier.
 
-- **Product spec:** [`docs/PRD-catalogo-renovarte.md`](./docs/PRD-catalogo-renovarte.md)
+- **Product spec:** [`docs/PRD/PRD-catalogo-renovarte.md`](./docs/PRD/PRD-catalogo-renovarte.md)
 - **Architecture:** [`docs/rfc/0001-arquitectura-catalogo.md`](./docs/rfc/0001-arquitectura-catalogo.md)
 - **Marca (paleta, tipografía, logo):** [`docs/brand.md`](./docs/brand.md)
 - **How we build (Spec-Driven Development):** [`specs/`](./specs/) — start with

@@ -5,7 +5,7 @@
 | **Estado** | Draft |
 | **Autor** | RenovArte |
 | **Fecha** | 2026-09-10 |
-| **RFC relacionado** | [RFC-0001 — Arquitectura del catálogo](./rfc/0001-arquitectura-catalogo.md) |
+| **RFC relacionado** | [RFC-0001 — Arquitectura del catálogo](../rfc/0001-arquitectura-catalogo.md) |
 
 ---
 
@@ -49,6 +49,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Diseño responsive (mobile-first, la mayoría de los clientes van a entrar desde el celular).
 - Branding con el logo e identidad visual de RenovArte.
 - Carga/actualización de catálogo vía script manual (no requiere panel de administración en esta fase).
+- Carga de precios de referencia desde el PDF público de LACA (precio ABC y precio de lista), con revisión y decisión manual por producto (spec 0008).
 
 ### 4.2 Fuera de alcance (Fase 1)
 - Carrito de compras y checkout.
@@ -76,6 +77,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RF-07 | El catálogo debe poder actualizarse corriendo un script local que regenera el archivo de datos consumido por la web. |
 | RF-08 | El margen aplicado debe ser configurable por variable de entorno, sin tocar código. |
 | RF-09 | Debe existir un reporte interno (no público) que compare precio de venta propio vs. precio público de LACA, para decisiones de pricing. |
+| RF-10 | El sistema debe poder incorporar precios de referencia desde el PDF público de LACA (por producto: Precio Profesional, Precio ABC y Precio Catálogo) y permitir al admin elegir, producto por producto, cuál de los precios sugeridos (ABC o Catálogo) usar como precio de venta publicado — por defecto el precio ABC. El Precio Profesional (lo que paga el revendedor) es información sensible tipo costo: solo se usa como referencia local para ver el margen implícito, nunca se commitea ni se puede publicar como precio de venta. |
 
 ## 6. Requisitos no funcionales
 
@@ -101,6 +103,8 @@ Al no haber compra, el éxito de esta fase es cualitativo/operativo:
 | Exponer costo/margen por error en el bundle público | Separación estricta de salidas (pública vs. privada) definida en el RFC; nunca usar `NEXT_PUBLIC_` para datos sensibles |
 | Dependencia del formato del CSV de serlaca (puede cambiar) | Script de ingesta aislado y con validación de columnas esperadas |
 | Catálogo desactualizado si no se corre el script a tiempo | Documentar el proceso en el README; evaluar automatización en fase futura |
+| Elegir precio ABC o Catálogo del PDF sin aplicar margen propio puede vender sin margen sobre el costo real | La revisión (spec 0008) muestra el precio actual (costo + margen) y el margen implícito de cada opción (contra Precio Profesional) antes de decidir; la elección es explícita y por producto, nunca automática para todo el catálogo |
+| El PDF trae Precio Profesional (costo del revendedor) mezclado con los precios públicos — tratarlo igual que ABC/Catálogo terminaría commiteando un dato de costo | Precio Profesional se extrae a un archivo gitignorado (mismo tratamiento que `data/raw/`); solo ABC y Catálogo llegan a `data/reference/` (committed) |
 
 ## 9. Fases futuras (fuera de este PRD, mencionadas para contexto)
 - Fase 2: carrito + checkout con Mercado Pago.
@@ -110,3 +114,4 @@ Al no haber compra, el éxito de esta fase es cualitativo/operativo:
 ## 10. Referencias
 - RFC-0001 — Arquitectura técnica del catálogo (detalle de implementación de este PRD).
 - Catálogo LACA Aniversario 2026/2027 (fuente de referencia de precios públicos).
+- PDF de precios LACA (precio ABC + precio de lista) — fuente de datos de la spec 0008.
