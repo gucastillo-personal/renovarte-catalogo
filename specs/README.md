@@ -35,15 +35,15 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | ID | Feature | Status |
 |----|---------|--------|
 | [0001](./0001-walking-skeleton/spec.md) | Walking skeleton (scaffold + grid + detail + deploy) | In progress — code complete, deploy pending |
-| [0002](./0002-ingest-script/spec.md) | Ingest script — CSV → products.json, margin from env | Done (commit 307df5a); RF-06/07/08 |
-| [0009](./0009-api-ingest/spec.md) | Ingesta serlaca en 2 etapas (`pnpm ingest` crudo → `pnpm transform`) | Built (98 tests); corrida real OK (434→384). Falta `SERLACA_DISCOUNT_PERCENT` real para commitear datos |
-| 0010 | GitHub Action programado que corre la ingesta | Placeholder (follow-up de 0009) |
+| [0002](./0002-ingest-script/spec.md) | Ingest script — CSV → products.json, margin from env | **Migrado a `renovarte-pipeline`** (2026-09) — ver su `PLAN.md` en `renovarte-parent` |
+| [0009](./0009-api-ingest/spec.md) | Ingesta serlaca en 2 etapas (`pnpm ingest` crudo → `pnpm transform`) | **Migrado a `renovarte-pipeline`** (2026-09) |
+| 0010 | GitHub Action programado que corre la ingesta | **Migrado a `renovarte-pipeline`** (2026-09) — la Action vive ahí, este repo solo recibe el PR |
 | [0003](./0003-category-filter/spec.md) | Category filter (/categoria/[slug], CategoryNav) | Built (115 unit + 8 e2e); 24 categorías |
 | [0004](./0004-search/spec.md) | Name search (SearchBox + CatalogView, filtro cliente) | Built (121 unit + 11 e2e) |
-| [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa |
+| [0005](./0005-offer-indicator/spec.md) | Offer indicator (data/offers.json + descuento_pct + OfferBadge + /ofertas) | Built (134 unit + 12 e2e); 1 oferta activa — `data/offers.json` ahora vive en `renovarte-pipeline` |
 | [0006](./0006-branding/spec.md) | Branding (logo real, paleta, tipografía, OG, manifest) | Built (135 unit + 15 e2e) |
 | [0007](./0007-offer-pricing/spec.md) | Precio de oferta (antes / % / ahora) en card y ficha | Built (143 unit + 17 e2e) |
-| [0008](./0008-pdf-price-override/spec.md) | Precio desde PDF de LACA (Profesional=costo / ABC / Catálogo) — match + revisión manual por producto → overlay en `pnpm transform` | Backlog — RFC-0001 actualizado; falta `plan.md`/`tasks.md` |
+| [0008](./0008-pdf-price-override/spec.md) | Precio desde PDF de LACA (Profesional=costo / ABC / Catálogo) | **Migrado a `renovarte-pipeline`**, e implementado con un diseño distinto al de este spec.md: precio del PDF automático (`max(ABC, costo+margen)`, sin revisión manual por producto) en vez del selector ABC/Catálogo/Actual descripto acá |
 
 _El reporte interno de márgenes (ex 0007) se eliminó — se abordará por otra
 vía. El 0008 original ("referencia de precios públicos de LACA") se deprecó y
@@ -59,13 +59,13 @@ de precio alternativa, no reporte)._
 | RF-03 | Search by text (name) | 0004 | Built — filtro cliente accent-insensitive, sin red; anda dentro de categoría |
 | RF-04 | Product detail page | 0001 | Done — SSG, deployed |
 | RF-05 | Mark products on offer | 0005, 0007 | Built — badge/chip en card+ficha; con descuento muestra antes tachado + −N% + precio final (data/offers.json) |
-| RF-06 | Price = cost + configurable margin; never show cost | 0002, 0009 | Done for CSV (0002); API source in 0009 |
-| RF-07 | Catalog updated by a local script regenerating the data file | 0002, 0009 | Done for CSV (0002); API source in 0009 |
-| RF-08 | Margin configurable by env var, no code change | 0002 | Done — `MARGIN_PERCENT_DEFAULT` + per-category override |
-| RF-09 | Internal (non-public) report: own price vs LACA public price | — | Sin spec — se abordará por otra vía (ex 0007 eliminada); puede apoyarse en `laca_pdf_precios.csv` de 0008 |
-| RF-10 | Precio desde PDF de LACA (ABC/Catálogo), decisión manual por producto; Precio Profesional (costo) nunca publicable | 0008 | Backlog |
+| RF-06 | Price = cost + configurable margin; never show cost | 0002, 0009 | Migrado a `renovarte-pipeline` |
+| RF-07 | Catalog updated by a local script regenerating the data file | 0002, 0009 | Migrado a `renovarte-pipeline` (`make ingest && make transform`, manual) |
+| RF-08 | Margin configurable by env var, no code change | 0002 | Migrado a `renovarte-pipeline` |
+| RF-09 | Internal (non-public) report: own price vs LACA public price | — | Sin spec — nunca se implementó de este lado ni del nuevo |
+| RF-10 | Precio desde PDF de LACA (ABC/Catálogo), decisión manual por producto; Precio Profesional (costo) nunca publicable | 0008 | Migrado a `renovarte-pipeline`, con precio automático (sin revisión manual) en vez del selector descripto en 0008 |
 | RNF-01 | $0 hosting / infra (free tier) | 0001 | Done — Vercel free tier |
-| RNF-02 | Fast initial load (static catalog, no runtime backend/DB) | 0001, 0009 | Done — all Static/SSG; 0009 keeps ingest out of runtime |
-| RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0009 | Enforced — `check:leak` green, `buildPublicProduct` emits only public keys, output gated through `validateProducts`; 0009 adds `SERLACA_API_KEY` never in bundle/Vercel |
+| RNF-02 | Fast initial load (static catalog, no runtime backend/DB) | 0001, 0009 | Done — all Static/SSG; ingesta corre fuera de este repo por completo |
+| RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0009 | Enforced de este lado por `check:leak` + `validateProducts`; el cálculo de costo/margen en sí vive en `renovarte-pipeline` |
 | RNF-04 | Responsive, usable on mobile | 0001, 0006 | Done — sin h-scroll a 390/768/1280 (e2e), paleta + tipografía de marca |
 | RNF-05 | Own repo, documented, portfolio-grade | 0001, 0006 | Done — repo + README + specs + docs/brand.md, deployed |

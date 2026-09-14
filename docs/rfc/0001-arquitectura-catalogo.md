@@ -6,7 +6,21 @@
 | **Fecha** | 2026-09-10 |
 | **PRD relacionado** | [PRD — Catálogo RenovArte](../PRD/PRD-catalogo-renovarte.md) |
 | **Reemplaza** | — |
-| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)). 2026-09-12 — §1/§2.2/§2.3/§2.4/§2.5: el PDF de precios LACA pasa de referencia pasiva a fuente opcional de `precio_venta` por producto, vía decisión manual del admin (ver [spec 0008](../../specs/0008-pdf-price-override/spec.md)) |
+| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)). 2026-09-12 — §1/§2.2/§2.3/§2.4/§2.5: el PDF de precios LACA pasa de referencia pasiva a fuente opcional de `precio_venta` por producto, vía decisión manual del admin (ver [spec 0008](../../specs/0008-pdf-price-override/spec.md)). **2026-09-14 — migración completa**: todo el pipeline de ingesta descripto en §2.2-§2.5 y §4 (`scripts/ingest.ts`, `scripts/transform.ts`, `scripts/lib/**`, la extracción Python del PDF) se extrajo a un repo separado, [`renovarte-pipeline`](https://github.com/gucastillo-personal/renovarte-pipeline) — ver nota debajo. |
+
+> **Vigente desde 2026-09-14:** todo lo que este RFC describe sobre
+> ingesta, costo, margen, el PDF de LACA y su extracción (§2.2, §2.3 en la
+> parte de cálculo de precio, §2.5 en la parte de `scripts/`, y §4 sobre
+> Python/`pdfplumber`) **ya no vive en este repo**. Se migró a
+> [`renovarte-pipeline`](https://github.com/gucastillo-personal/renovarte-pipeline)
+> (repo Python separado) — ver `PLAN.md` y `docs/flujo-precio-pdf.md` en
+> [`renovarte-parent`](https://github.com/gucastillo-personal/renovarte-parent)
+> para la arquitectura vigente. Las secciones de abajo quedan como
+> **contexto histórico** de por qué el catálogo tiene la forma que tiene
+> (schema público, invariantes de seguridad §2.3/§2.4) — no describen dónde
+> corre el código hoy. `renovarte-catalogo` es 100% TypeScript otra vez; la
+> excepción Python nunca llegó a construirse acá (se construyó directo en
+> el repo nuevo).
 
 ## 1. Contexto
 

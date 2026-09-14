@@ -41,8 +41,6 @@ pnpm dev            # http://localhost:3000
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | End-to-end (Playwright; hace `build` + `start`) |
-| `pnpm ingest` | **Etapa 1** — baja el catálogo crudo de la API de serlaca → `data/input/serlaca-raw.json` (spec [`0009`](./specs/0009-api-ingest/spec.md)) |
-| `pnpm transform` | **Etapa 2** — `data/input/` (o `--in <csv>`) → `public/data/products.json` con margen + limpieza |
 | `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista en el output (`.next/`, `public/data/`) — RNF-03 |
 | `pnpm gate` | Corre todo en orden: lint · build · typecheck · test · check:leak · e2e (build antes de typecheck: genera los tipos de ruta de Next) |
 | `pnpm ship` | `pnpm gate` y, si pasa, `vercel deploy --prod` (deploy a producción) |
@@ -73,42 +71,30 @@ proyecto apunta. Si el repo está conectado a Vercel por Git, un `git push` a
 
 ## Datos del catálogo
 
-`public/data/products.json` se genera en **dos etapas separadas** (descarga vs.
-lógica de negocio — spec [`0009`](./specs/0009-api-ingest/spec.md)):
+`public/data/products.json` **no se genera en este repo** — viene de
+[`renovarte-pipeline`](https://github.com/gucastillo-personal/renovarte-pipeline),
+un repo Python separado, vía Pull Request. Este repo es puramente de
+presentación: lee `public/data/products.json` como un archivo estático más
+(`src/lib/products.ts`), sin tocar la API de Serlaca, el PDF de LACA, costo
+ni margen — ver [`docs/rfc/0001-arquitectura-catalogo.md`](./docs/rfc/0001-arquitectura-catalogo.md)
+para el detalle de la separación y [`specs/constitution.md`](./specs/constitution.md)
+para las invariantes de seguridad que siguen aplicando de este lado.
 
-```
-pnpm ingest      # 1. API serlaca → data/input/serlaca-raw.json   (crudo, sin tocar)
-pnpm transform   # 2. data/input/ → public/data/products.json     (descuento + margen + limpieza)
-```
+Flujo cuando cambia el catálogo (ingesta, precios del PDF, ofertas — todo
+vive y se corre en `renovarte-pipeline`):
 
-1. `cp .env.example .env.local` y completar. **Etapa 1**: `SERLACA_API_KEY`,
-   `SERLACA_LACA_ID`. **Etapa 2**: `MARGIN_PERCENT_DEFAULT` (+ overrides por
-   categoría opcionales), `SERLACA_IMAGE_BASE`. Todo **sin** `NEXT_PUBLIC_`,
-   nunca en Vercel.
-2. `pnpm ingest` → `data/input/serlaca-raw.json` (gitignored, ~1 MB; se re-baja
-   cuando haga falta).
-3. `pnpm transform` → excluye productos de uso profesional exclusivo, toma el
-   `price` como costo y le suma `MARGIN_PERCENT`, limpia nombres de categoría,
-   marca en oferta los `productCode` de `data/offers.json` (spec
-   [`0005`](./specs/0005-offer-indicator/spec.md)), reescribe
-   `public/data/products.json`. Determinístico: correrlo dos veces no cambia el
-   archivo.
-4. `git commit public/data/products.json` + `git push` → deploy en Vercel.
+1. El admin corre `make ingest && make transform` (y `make pdf-extract`
+   cuando cambia el PDF de LACA) en `renovarte-pipeline`.
+2. `renovarte-pipeline` abre un PR contra este repo con el
+   `public/data/products.json` actualizado (manual vía `make publish-live`,
+   o disparando su GitHub Action).
+3. Acá solo queda **revisar el diff del PR y mergearlo** — nunca se
+   automergea. El merge dispara el deploy en Vercel.
 
-Ofertas: editá `data/offers.json` — `{ "codigos": { "<productCode>": {} } }` para
-solo el badge, o `{ "<productCode>": { "descuento_pct": 10 } }` para 10% off. Con
-descuento, el producto guarda `precio_regular` (precio sin la promo) además del
-`precio_venta` final, y la card/ficha muestran antes tachado + `−N%` + ahora
-(spec [`0007`](./specs/0007-offer-pricing/spec.md)). `pnpm transform`, commiteá
-y pusheá.
-
-**Fallback CSV** (spec [`0002`](./specs/0002-ingest-script/spec.md)):
-`pnpm transform --in data/raw/serlaca_export.sample.csv` — salta la etapa 1 y
-transforma un CSV local directamente.
-
-El reporte interno `data/private/margin-report.csv` (precio propio vs. precio
-público de LACA) es la spec [`0007`](./specs/0007-margin-report/spec.md), todavía
-no implementado.
+Ofertas (`{ "codigos": { "<productCode>": {} } }` para badge,
+`{ "<productCode>": { "descuento_pct": 10 } }` para % off — spec
+[`0005`](./specs/0005-offer-indicator/spec.md)/[`0007`](./specs/0007-offer-pricing/spec.md))
+se editan en `renovarte-pipeline/data/offers.json`, no acá.
 
 ## Seguridad de negocio
 
