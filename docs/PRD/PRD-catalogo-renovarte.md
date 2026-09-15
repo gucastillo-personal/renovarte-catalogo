@@ -9,6 +9,17 @@
 
 ---
 
+> **Enmienda (2026-09-14):** se agregan **RF-11** y **RF-12** — una sección
+> de misión/marca ("nosotros") en la home, promovida a bloque principal
+> (lo primero que ve el visitante), con el catálogo de productos pasando a
+> secundario (visible, pero después). Detalle y criterios de aceptación en
+> [`specs/0011-mision-home/spec.md`](../../specs/0011-mision-home/spec.md).
+> No reemplaza ni reduce el catálogo (RF-01 a RF-04 siguen intactos) — es
+> un cambio de jerarquía/orden en la home, no de alcance funcional del
+> catálogo.
+
+---
+
 ## 1. Problema
 
 RenovArte revende productos de LACA (y a futuro otros proveedores) de forma informal, sin un catálogo propio online. Esto genera:
@@ -50,6 +61,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Branding con el logo e identidad visual de RenovArte.
 - Carga/actualización de catálogo vía script manual (no requiere panel de administración en esta fase).
 - Carga de precios de referencia desde el PDF público de LACA (precio ABC y precio de lista), con revisión y decisión manual por producto (spec 0008).
+- **(Enmienda)** Sección de misión/marca ("nosotros") en la home, ubicada como bloque principal, antes del catálogo de productos, con el copy de la identidad de marca de RenovArte.
 
 ### 4.2 Fuera de alcance (Fase 1)
 - Carrito de compras y checkout.
@@ -58,6 +70,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Panel de administración con UI (la actualización de datos es vía script + CSV).
 - Multi-proveedor activo (la arquitectura lo soporta, pero solo se carga LACA en esta fase).
 - Stock en tiempo real / disponibilidad.
+- **(Enmienda)** Presencia personal de Juli (fundadora, "cara de la marca"): foto, bio, firma. Se define en un feature futuro separado; esta fase usa solo el copy de marca, sin depender de esa pieza.
 
 ### 4.3 Explícitamente fuera de la vista pública
 - Costo real de compra a LACA.
@@ -78,6 +91,8 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RF-08 | El margen aplicado debe ser configurable por variable de entorno, sin tocar código. |
 | RF-09 | Debe existir un reporte interno (no público) que compare precio de venta propio vs. precio público de LACA, para decisiones de pricing. |
 | RF-10 | El sistema debe poder incorporar precios de referencia desde el PDF público de LACA (por producto: Precio Profesional, Precio ABC y Precio Catálogo) y permitir al admin elegir, producto por producto, cuál de los precios sugeridos (ABC o Catálogo) usar como precio de venta publicado — por defecto el precio ABC. El Precio Profesional (lo que paga el revendedor) es información sensible tipo costo: solo se usa como referencia local para ver el margen implícito, nunca se commitea ni se puede publicar como precio de venta. |
+| RF-11 *(enmienda 2026-09-14)* | La home debe presentar, como bloque principal — lo primero y más prominente que ve el visitante, antes que cualquier producto — una sección de misión/marca de RenovArte con el mensaje de identidad de marca definido por el negocio (basado en la primera publicación de Instagram de @renovarte_by_juli). |
+| RF-12 *(enmienda 2026-09-14)* | El catálogo de productos (grilla, filtro por categoría, buscador — RF-01 a RF-04) debe seguir mostrándose en la home, como contenido secundario, después de la sección de misión, sin perder ninguna funcionalidad existente. |
 
 ## 6. Requisitos no funcionales
 

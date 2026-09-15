@@ -4,6 +4,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 import { slugifyCategoria } from "../../src/lib/category-slug";
+import { MISSION_SLIDES } from "../../src/lib/mission-content";
 import { matchProducts } from "../../src/lib/search";
 import type { Product } from "../../src/lib/types";
 
@@ -271,4 +272,85 @@ test("a product with no offer shows a single price, no strikethrough (AC-3)", as
   await page.goto(`/producto/${plain.id}`);
   await expect(page.locator("main s")).toHaveCount(0);
   await expect(page.locator("main")).toContainText(plain.precio_venta.toLocaleString("es-AR"));
+});
+
+// --- Mission section as the home's first block (spec 0011) ---
+
+test("the mission section is the first block, before the catalog heading (AC-1)", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const h1 = page.locator("h1");
+  await expect(h1).toHaveCount(1);
+  await expect(h1).toHaveText(MISSION_SLIDES[0]!.text);
+
+  const headings = await page.locator("h1, h2").allTextContents();
+  expect(headings.slice(0, 2)).toEqual([MISSION_SLIDES[0]!.text, "Catálogo"]);
+
+  // The catalog block comes after the mission section in DOM order.
+  const order = await page.evaluate(() => {
+    const mission = document.querySelector("section");
+    const catalogo = document.getElementById("catalogo");
+    if (!mission || !catalogo) return null;
+    return mission.compareDocumentPosition(catalogo) & Node.DOCUMENT_POSITION_FOLLOWING
+      ? "mission-first"
+      : "catalog-first";
+  });
+  expect(order).toBe("mission-first");
+});
+
+test("the catalog (heading, nav, grid) stays functional below the mission section (AC-4)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 2, name: "Catálogo" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Categorías" })).toBeVisible();
+  await expect(page.locator("main ul > li")).toHaveCount(products.length);
+});
+
+test("the mission section closes with the RenovArte logo (AC-3)", async ({ page }) => {
+  await page.goto("/");
+  const section = page.locator("section", { has: page.locator("#mensaje-5") });
+  await expect(section.getByRole("img", { name: "RenovArte" })).toHaveCount(1);
+});
+
+test("the 5 mission messages and the 5 dots are in the HTML with no JS, no duplicated arrows (AC-7)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  for (const slide of MISSION_SLIDES) {
+    await expect(page.getByText(slide.text)).toBeVisible();
+  }
+
+  await expect(
+    page.getByRole("button", { name: /Mensaje (anterior|siguiente)/ }),
+  ).toHaveCount(0);
+
+  await page.locator('a[href="#mensaje-3"]').click();
+  await expect(page).toHaveURL(/#mensaje-3$/);
+  await expect(page.locator("#mensaje-3")).toBeInViewport();
+
+  await context.close();
+});
+
+test("keyboard ArrowRight moves the carousel when the scroll region has focus (AC-7, JS enhancement)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator('[role="region"]').focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#mensaje-2")).toBeInViewport();
+});
+
+test('"Ver catálogo" CTA scrolls to the catalog heading (AC-8)', async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: /Ver catálogo/ }).click();
+  await expect(page).toHaveURL(/#catalogo$/);
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Catálogo" }),
+  ).toBeInViewport();
 });

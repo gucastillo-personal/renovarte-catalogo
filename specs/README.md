@@ -44,6 +44,7 @@ Backlog features carry only `spec.md` until they are picked up; `plan.md` and
 | [0006](./0006-branding/spec.md) | Branding (logo real, paleta, tipografía, OG, manifest) | Built (135 unit + 15 e2e) |
 | [0007](./0007-offer-pricing/spec.md) | Precio de oferta (antes / % / ahora) en card y ficha | Built (143 unit + 17 e2e) |
 | [0008](./0008-pdf-price-override/spec.md) | Precio desde PDF de LACA (Profesional=costo / ABC / Catálogo) | **Migrado a `renovarte-pipeline`**, e implementado con un diseño distinto al de este spec.md: precio del PDF automático (`max(ABC, costo+margen)`, sin revisión manual por producto) en vez del selector ABC/Catálogo/Actual descripto acá |
+| [0011](./0011-mision-home/spec.md) | Sección de misión/nosotros como centro de la home (catálogo pasa a secundario) | Built (59 unit + 24 e2e totales; +8 unit / +6 e2e de este feature) |
 
 _El reporte interno de márgenes (ex 0007) se eliminó — se abordará por otra
 vía. El 0008 original ("referencia de precios públicos de LACA") se deprecó y
@@ -69,3 +70,5 @@ de precio alternativa, no reporte)._
 | RNF-03 | Cost / margin / LACA list price absent from public files and JS bundle | 0001, 0002, 0009 | Enforced de este lado por `check:leak` + `validateProducts`; el cálculo de costo/margen en sí vive en `renovarte-pipeline` |
 | RNF-04 | Responsive, usable on mobile | 0001, 0006 | Done — sin h-scroll a 390/768/1280 (e2e), paleta + tipografía de marca |
 | RNF-05 | Own repo, documented, portfolio-grade | 0001, 0006 | Done — repo + README + specs + docs/brand.md, deployed |
+| RF-11 | Sección de misión/marca en la home, como bloque principal (antes que el catálogo) | 0011 | Built — `MissionSection` (carrusel scroll-snap de 5 mensajes, `h1`) primero en `<main>` |
+| RF-12 | Catálogo de productos pasa a secundario en la home, sin perder funcionalidad (RF-01 a RF-04) | 0011 | Built — heading bajado a `h2`, `CategoryNav`/`CatalogView` sin cambios, e2e de spec 0001/0003/0004/0005 en verde |
