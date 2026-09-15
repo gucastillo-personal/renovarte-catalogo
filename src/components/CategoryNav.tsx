@@ -4,8 +4,8 @@ import { getCategoryList, getProductsOnOffer } from "@/lib/products";
 
 const CHIP =
   "rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500";
-const INACTIVE = "bg-beige-100 text-sage-700 hover:bg-beige-200";
-const ACTIVE = "bg-sage-600 text-beige-50";
+const INACTIVE = "bg-sage-100 text-sage-700 hover:bg-sage-200";
+const ACTIVE = "bg-sage-500 text-beige-50";
 const OFFERS = "bg-sage-100 text-sage-800 hover:bg-sage-200";
 
 /**
