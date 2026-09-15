@@ -28,7 +28,7 @@ componentes — usar siempre `sage-*` / `beige-*`.
 | Token | Hex | Uso |
 |---|---|---|
 | `beige-50` | `#faf8f2` | fondo de página |
-| `beige-100` | `#f4f1e8` | fondo del logo · header · footer · superficies |
+| `beige-100` | `#f4f1e8` | fondo del logo · header · footer · superficies · cuerpo de ProductCard |
 | `beige-200` | `#eae3d2` | bordes finos (hairline) |
 | `beige-300` | `#ddd0b6` | bordes de inputs, detalles |
 | `sage-50` | `#f3f5ef` | fondos sutiles (estado vacío) |
@@ -39,7 +39,7 @@ componentes — usar siempre `sage-*` / `beige-*`.
 | `sage-500` | `#7a9463` | **primario** — botones, chip activo, badge de oferta |
 | `sage-600` | `#5f6b52` | texto secundario sobre crema (contraste AA) |
 | `sage-700` | `#4b5441` | texto de títulos |
-| `sage-800` | `#3d4436` | énfasis |
+| `sage-800` | `#3d4436` | énfasis · nombre de producto en ProductCard |
 | `sage-900` | `#333a2e` | texto de cuerpo |
 
 Contraste: `sage-600`/`700`/`800`/`900` sobre `beige-50` pasan WCAG AA para texto
@@ -60,12 +60,19 @@ El header usa el wordmark real (`logo-wordmark.svg`); Cormorant sólo para los
 Etiquetas cortas tipo "SPA DE PIEL": mayúsculas con `tracking` amplio
 (`tracking-[0.2em]` o más).
 
+Nombre de producto en `ProductCard`: `text-sm font-semibold` (14px/600) —
+más chico que el cuerpo base a propósito, para que el precio (`text-lg
+font-semibold` vía `ProductPrice`) sea el dato dominante de la card.
+
 ## Radios y espaciado
 
 - Radios: `rounded` (badges, chips pequeños), `rounded-lg` (cards, inputs),
   `rounded-full` (chips de `CategoryNav`).
 - Ancho de contenido: `max-w-6xl` centrado, `px-4` de gutter (mínimo 16px a
   cualquier ancho).
+- Padding del cuerpo de `ProductCard`: asimétrico (`pt-3 px-3.5 pb-4` —
+  12px/14px/16px). Menos aire arriba (ya separado por la imagen), más
+  abajo (el precio queda al pie via `mt-auto`).
 
 ## Metadata
 

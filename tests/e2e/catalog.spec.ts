@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { slugifyCategoria } from "../../src/lib/category-slug";
 import { MISSION_SLIDES } from "../../src/lib/mission-content";
@@ -30,6 +30,12 @@ const [sampleCategoria, sampleCount] = [...categoryCounts.entries()].sort(
   (a, b) => b[1] - a[1],
 )[0]!;
 const sampleSlug = slugifyCategoria(sampleCategoria);
+
+// The catalog's real longest product name (spec 0013) — not the 33-char
+// illustrative example from ux.md, which isn't the actual worst case.
+const longestNameProduct = products.reduce((longest, p) =>
+  p.nombre.length > longest.nombre.length ? p : longest,
+);
 
 test("home lists every product, each with a name and a price (RF-01)", async ({ page }) => {
   await page.goto("/");
@@ -353,4 +359,87 @@ test('"Ver catálogo" CTA scrolls to the catalog heading (AC-8)', async ({ page 
   await expect(
     page.getByRole("heading", { level: 2, name: "Catálogo" }),
   ).toBeInViewport();
+});
+
+// --- ProductGrid intrinsic columns + ProductCard body (spec 0013) ---
+//
+// These measure the rendered DOM (getBoundingClientRect) rather than
+// asserting Tailwind class names, because the arbitrary grid-template-columns
+// value's resulting column count depends on the real container width at
+// runtime, per plan.md.
+
+/**
+ * Counts how many `<li>` cards share the topmost row's `top` — i.e. how many
+ * columns the grid resolved to at the page's current viewport.
+ */
+async function countColumns(page: Page): Promise<number> {
+  const tops = await page
+    .locator("main ul > li")
+    .evaluateAll((elements) => elements.map((el) => el.getBoundingClientRect().top));
+  const firstRowTop = Math.min(...tops);
+  return tops.filter((top) => Math.abs(top - firstRowTop) < 1).length;
+}
+
+/** Bounding boxes for a card's name (`<h2>`), price block and the card itself. */
+async function cardLayout(page: Page, productId: string) {
+  const card = page.locator(`main ul > li a[href="/producto/${productId}"]`);
+  const nameBox = await card.locator("h2").boundingBox();
+  const priceBox = await card.locator('[class~="mt-auto"]').boundingBox();
+  const cardBox = await card.boundingBox();
+  if (!nameBox || !priceBox || !cardBox) {
+    throw new Error(`expected visible name/price/card boxes for product ${productId}`);
+  }
+  const overflowX = await card.evaluate((el) => el.scrollWidth - el.clientWidth);
+  return { card, nameBox, priceBox, cardBox, overflowX };
+}
+
+test("a wider viewport resolves more grid columns than a narrower one, driven by container width not a fixed breakpoint (AC-7)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.goto("/");
+  const narrowColumns = await countColumns(page);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const wideColumns = await countColumns(page);
+
+  expect(wideColumns).toBeGreaterThan(narrowColumns);
+  // Concrete check per plan.md's derivation for max-w-6xl (~1152px content):
+  // 5*190 + 4*16 = 1014px fits, 6*190 + 5*16 = 1220px doesn't.
+  expect(wideColumns).toBe(5);
+});
+
+test("at the ~190px minimum column width, the real longest product name doesn't overlap or truncate the price (AC-8)", async ({
+  page,
+}) => {
+  // Viewport chosen so main's content width (viewport - 32px gutter) lands
+  // right at the 2-column threshold (396px -> two ~190px columns).
+  await page.setViewportSize({ width: 428, height: 900 });
+  await page.goto("/");
+
+  const { nameBox, priceBox, cardBox, overflowX } = await cardLayout(
+    page,
+    longestNameProduct.id,
+  );
+
+  // Card width should be at (or very near) the 190px minmax floor — tolerant
+  // range per plan.md "Riesgos" #1 (subpixel/scrollbar rounding), not an
+  // exact equality.
+  expect(cardBox.width).toBeGreaterThanOrEqual(185);
+  expect(cardBox.width).toBeLessThanOrEqual(200);
+
+  expect(nameBox.y + nameBox.height).toBeLessThanOrEqual(priceBox.y + 1);
+  expect(overflowX).toBeLessThanOrEqual(1);
+});
+
+test("at 390px (mobile), the real longest product name doesn't overlap or truncate the price (AC-4)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const { nameBox, priceBox, overflowX } = await cardLayout(page, longestNameProduct.id);
+
+  expect(nameBox.y + nameBox.height).toBeLessThanOrEqual(priceBox.y + 1);
+  expect(overflowX).toBeLessThanOrEqual(1);
 });

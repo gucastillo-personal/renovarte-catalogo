@@ -9,7 +9,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/producto/${product.id}`}
-      className="group flex w-full flex-col overflow-hidden rounded-lg border border-beige-200 bg-white transition-shadow hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500"
+      className="group flex w-full flex-col overflow-hidden rounded-lg border border-beige-200 bg-beige-100 transition-shadow hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500"
     >
       <div className="relative aspect-square bg-beige-100">
         <Image
@@ -25,8 +25,8 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 p-4">
-        <h2 className="font-medium leading-snug text-sage-800 group-hover:text-sage-600">
+      <div className="flex flex-1 flex-col gap-1 pt-3 px-3.5 pb-4">
+        <h2 className="text-sm font-semibold leading-snug text-sage-800 group-hover:text-sage-600">
           {product.nombre}
         </h2>
         <p className="text-sm text-sage-600">{product.presentacion}</p>

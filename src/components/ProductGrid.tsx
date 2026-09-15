@@ -3,7 +3,7 @@ import type { Product } from "@/lib/types";
 
 export function ProductGrid({ products }: { products: Product[] }) {
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,190px),1fr))] gap-4">
       {products.map((product) => (
         <li key={product.id} className="flex">
           <ProductCard product={product} />
