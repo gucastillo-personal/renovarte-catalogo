@@ -1,13 +1,18 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-// spec 0015 — the "real groups exist" branch of CategoryNav can't be
-// exercised against today's public/data/products.json (no codCategoria
-// published yet, Fase 2 pending — see ux.md "Acceso directo a una
-// categoría específica desde /"). Mocking @/lib/products with an in-memory
-// fixture lets this repo prove the AC-1 behavior (nivel 1 switches to
-// group chips, drops the flat category list) ahead of Fase 2, same spirit
-// as the fixture-based tests in tests/unit/products.test.ts.
+// spec 0015 — the "real groups exist" branch of CategoryNav (ux.md "Acceso
+// directo a una categoría específica desde /").
+//
+// tasks.md T20(a) decision (2026-09-21): now that renovarte-pipeline has
+// published codCategoria + serlaca_category_groups.json, this same branch
+// is also covered against real data in tests/unit/category-nav.test.tsx —
+// this file is *kept* as a deterministic, fixture-controlled companion
+// rather than deleted, because it pins exact slugs/counts/highlight
+// behavior independent of the next pipeline data refresh (the real-data
+// test above deliberately avoids hardcoding those for that same reason).
+// Mocking @/lib/products with an in-memory fixture, same spirit as the
+// fixture-based tests in tests/unit/products.test.ts.
 vi.mock("@/lib/products", () => ({
   getGroupList: () => [
     { codCategoria: "1", slug: "cuidado-facial", nombre: "Cuidado facial", count: 3 },

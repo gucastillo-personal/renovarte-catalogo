@@ -31,6 +31,52 @@ const [sampleCategoria, sampleCount] = [...categoryCounts.entries()].sort(
 )[0]!;
 const sampleSlug = slugifyCategoria(sampleCategoria);
 
+// --- High-level groups (spec 0015 — RF-13, Fase 2) ---
+//
+// Same pattern as the category counts above: reads the public data files
+// directly rather than the server-only src/lib/products.ts, so this stays
+// robust to the next pipeline data refresh (no hardcoded ids/names/counts).
+const groupNames = JSON.parse(
+  readFileSync(
+    path.join(process.cwd(), "public", "data", "serlaca_category_groups.json"),
+    "utf-8",
+  ),
+) as Record<string, string>;
+
+const groupCounts = new Map<string, number>();
+const categoriaGroupIds = new Map<string, Set<string>>();
+for (const p of products) {
+  const ids = new Set(p.codCategoria ?? []);
+  for (const id of ids) groupCounts.set(id, (groupCounts.get(id) ?? 0) + 1);
+
+  const categoriaIds = categoriaGroupIds.get(p.categoria) ?? new Set<string>();
+  for (const id of p.codCategoria ?? []) categoriaIds.add(id);
+  categoriaGroupIds.set(p.categoria, categoriaIds);
+}
+const [sampleGroupId, sampleGroupCount] = [...groupCounts.entries()].sort(
+  (a, b) => b[1] - a[1],
+)[0]!;
+const sampleGroupNombre = groupNames[sampleGroupId] ?? sampleGroupId;
+const sampleGroupSlug = slugifyCategoria(sampleGroupNombre);
+
+// A categoria that belongs to exactly the sample group (unambiguous nivel-1
+// highlight, ux.md "Multi-grupo" punto 4) — drives the 2-click flow below.
+const sampleCategoriaInGroup = [...categoriaGroupIds.entries()].find(
+  ([, ids]) => ids.size === 1 && ids.has(sampleGroupId),
+)?.[0];
+if (!sampleCategoriaInGroup) {
+  throw new Error(`expected at least one categoria uniquely in group "${sampleGroupId}"`);
+}
+const sampleCategoriaInGroupSlug = slugifyCategoria(sampleCategoriaInGroup);
+const sampleCategoriaInGroupCount = categoryCounts.get(sampleCategoriaInGroup)!;
+
+// A real categoria that belongs to 2+ groups at once (ux.md "Multi-grupo"
+// punto 4) — undefined if today's data has no such case (documented inline
+// where used, not assumed).
+const sampleMultiGroupCategoria = [...categoriaGroupIds.entries()].find(
+  ([, ids]) => ids.size >= 2,
+)?.[0];
+
 // The catalog's real longest product name (spec 0013) — not the 33-char
 // illustrative example from ux.md, which isn't the actual worst case.
 const longestNameProduct = products.reduce((longest, p) =>
@@ -84,34 +130,68 @@ test("unknown product id renders the 404 page", async ({ page }) => {
 });
 
 // --- Category filter (spec 0003) ---
+//
+// Updated by tasks.md T20(b) (spec 0015, Fase 2 — ux.md "Acceso directo a
+// una categoría específica desde /"): now that renovarte-pipeline has
+// published real codCategoria data, getGroupList() is non-empty, so nivel 1
+// shows group chips instead of the flat category list (AC-1) — reaching a
+// specific category from `/` is a 2-click flow (group, then category), not
+// 1. This is the point of the spec, not a regression — the T17 "sin
+// modificar" exception for these 2 suites only held while getGroupList()
+// was empty (Fase 1), which is no longer the case. Authorized as part of
+// this same feature (tasks.md T20(b), ux.md), not new scope.
 
-test("home shows the category nav (RF-02)", async ({ page }) => {
+test("home shows the group nav, no flat category list by default (RF-02, spec 0015 AC-1)", async ({
+  page,
+}) => {
   await page.goto("/");
-  const nav = page.getByRole("navigation", { name: "Categorías" });
+  // exact: true — nivel 2's accessible name ("Categorías de {grupo}") would
+  // otherwise substring-match "Categorías" too once it's on the page (it
+  // isn't on "/", but the other test below reaches pages where it is).
+  const nav = page.getByRole("navigation", { name: "Categorías", exact: true });
   await expect(nav.getByRole("link", { name: "Todos" })).toHaveAttribute(
     "aria-current",
     "page",
   );
-  await expect(nav.getByRole("link", { name: sampleCategoria, exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: sampleGroupNombre, exact: true })).toBeVisible();
+  await expect(page.locator('nav[aria-label="Categorías"] a[href^="/categoria/"]')).toHaveCount(
+    0,
+  );
 });
 
-test("picking a category filters the grid and marks it active (RF-02, AC-3)", async ({
+test("picking a group then a category filters the grid and marks both active (RF-02, AC-3, spec 0015 AC-1/AC-2)", async ({
   page,
 }) => {
   await page.goto("/");
   await page
-    .getByRole("navigation", { name: "Categorías" })
-    .getByRole("link", { name: sampleCategoria, exact: true })
+    .getByRole("navigation", { name: "Categorías", exact: true })
+    .getByRole("link", { name: sampleGroupNombre, exact: true })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`/categoria/${sampleSlug}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sampleCategoria);
-  await expect(page.locator("main ul > li")).toHaveCount(sampleCount);
+  await expect(page).toHaveURL(new RegExp(`/grupo/${sampleGroupSlug}$`));
+  await expect(page.locator("main ul > li")).toHaveCount(sampleGroupCount);
+  await expect(
+    page
+      .getByRole("navigation", { name: "Categorías", exact: true })
+      .getByRole("link", { name: sampleGroupNombre, exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 
-  const activeChip = page
-    .getByRole("navigation", { name: "Categorías" })
-    .getByRole("link", { name: sampleCategoria, exact: true });
-  await expect(activeChip).toHaveAttribute("aria-current", "page");
+  await page.getByRole("link", { name: sampleCategoriaInGroup, exact: true }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/categoria/${sampleCategoriaInGroupSlug}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sampleCategoriaInGroup);
+  await expect(page.locator("main ul > li")).toHaveCount(sampleCategoriaInGroupCount);
+
+  // Unambiguous single-group categoria: both nivel 1 (group) and nivel 2
+  // (category) chips highlight as active (ux.md "Multi-grupo" punto 4).
+  await expect(
+    page
+      .getByRole("navigation", { name: "Categorías", exact: true })
+      .getByRole("link", { name: sampleGroupNombre, exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("link", { name: sampleCategoriaInGroup, exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 });
 
 test("unknown category slug renders the 404 page (AC-2)", async ({ page }) => {
@@ -119,47 +199,56 @@ test("unknown category slug renders the 404 page (AC-2)", async ({ page }) => {
   expect(res?.status()).toBe(404);
 });
 
-// --- Two-level category grouping, Fase 1 (spec 0015 — RF-13) ---
+// --- Two-level category grouping, Fase 2 (spec 0015 — RF-13, tasks.md T20) ---
 //
-// codCategoria doesn't exist in today's public/data/products.json yet (it
-// arrives via a future PR from renovarte-pipeline, Fase 2 — see ux.md
-// "Acceso directo a una categoría específica desde /"). Until then,
-// getGroupList() is [] and nivel 1 (CategoryNav) degrades to *exactly*
-// spec 0003's flat category list — no /grupo/* pages exist yet, and "/"
-// keeps showing every specific category one click away, same as before
-// this spec. This is why tests/e2e/catalog.spec.ts:88/:98 (spec 0003)
-// don't need to change for Fase 1: with today's data they exercise the
-// same behavior they always did. Nivel 1 only switches to group chips
-// once real groups exist (Fase 2, tasks.md T20) — see
-// tests/unit/category-nav-with-groups.test.tsx for that branch, covered
-// with an in-memory fixture since it can't be exercised against today's
-// real data.
+// renovarte-pipeline published codCategoria (public/data/products.json) and
+// serlaca_category_groups.json (2026-09-21). getGroupList() is now
+// non-empty, so nivel 1 (CategoryNav) shows one chip per real group instead
+// of degrading to spec 0003's flat category list, and specific categories
+// live in nivel 2 (GroupCategoryNav) on /grupo/[slug] and /categoria/[slug].
+// The Fase-1 empty-list fallback itself stays covered with a fixture in
+// tests/unit/category-nav-without-groups.test.tsx, since it can no longer
+// be exercised against real data.
 
 test("unknown group slug renders the 404 page (spec 0015)", async ({ page }) => {
   const res = await page.goto("/grupo/no-existe");
   expect(res?.status()).toBe(404);
 });
 
-test("home still shows the flat category list while no real group exists yet (spec 0015, Fase 1 fallback — no regression on spec 0003)", async ({
+test("/grupo/[slug] shows only that group's products and nivel-2 categories acotadas al grupo (spec 0015 AC-2)", async ({
   page,
 }) => {
-  await page.goto("/");
-  const nav = page.getByRole("navigation", { name: "Categorías" });
-  await expect(nav.getByRole("link", { name: "Todos" })).toBeVisible();
-  // Today's data has 0 real groups, so nivel 1 falls back to spec 0003's
-  // flat list: specific-category chips are present, /grupo/* chips are
-  // not (there's nothing to link to yet).
-  await expect(
-    page.locator('nav[aria-label="Categorías"] a[href^="/categoria/"]'),
-  ).not.toHaveCount(0);
-  await expect(page.locator('nav[aria-label="Categorías"] a[href^="/grupo/"]')).toHaveCount(0);
+  await page.goto(`/grupo/${sampleGroupSlug}`);
+  await expect(page.locator("main ul > li")).toHaveCount(sampleGroupCount);
+
+  const nivel2Links = page.locator(
+    "nav[aria-labelledby='group-category-nav-label'] a[href^='/categoria/']",
+  );
+  const hrefs = await nivel2Links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
+  const expectedHrefs = new Set(
+    [...categoriaGroupIds.entries()]
+      .filter(([, ids]) => ids.has(sampleGroupId))
+      .map(([nombre]) => `/categoria/${slugifyCategoria(nombre)}`),
+  );
+  expect(new Set(hrefs)).toEqual(expectedHrefs);
 });
 
-test("home has no horizontal scroll at 390px with the nivel-1/nivel-2 row layout (spec 0015, AC-5)", async ({
+test("home has no horizontal scroll at 390px with the nivel-1 group row layout (spec 0015, AC-5)", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("/grupo/[slug] has no horizontal scroll at 390px with real nivel-2 chips, largest group (spec 0015, AC-5)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/grupo/${sampleGroupSlug}`);
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
@@ -173,6 +262,30 @@ test("category page has no horizontal scroll at 390px (AC-4)", async ({ page }) 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("a real 2+-group categoria highlights no nivel-1 chip but shows the union of categories in nivel 2 (ux.md 'Multi-grupo' punto 4)", async ({
+  page,
+}) => {
+  // Documented finding against real pipeline data (2026-09-21): today no
+  // individual product carries 2+ codCategoria ids itself, but several
+  // categorías (e.g. "Labios") span 2+ groups because different products
+  // within the same categoria each carry a different single id. If a
+  // future data refresh removes every such case, this test is skipped
+  // rather than failing on a now-stale assumption.
+  test.skip(!sampleMultiGroupCategoria, "no real categoria spans 2+ groups in today's data");
+  const slug = slugifyCategoria(sampleMultiGroupCategoria!);
+
+  await page.goto(`/categoria/${slug}`);
+
+  // exact: true — nivel 2's accessible name ("Categorías de {grupos}")
+  // substring-matches "Categorías" too, and is rendered alongside nivel 1 on
+  // this page; without it this locator would (incorrectly) span both navs.
+  const nivel1 = page.getByRole("navigation", { name: "Categorías", exact: true });
+  await expect(nivel1.locator("a[aria-current='page']")).toHaveCount(0);
+
+  const activeNivel2Chip = page.getByRole("link", { name: sampleMultiGroupCategoria!, exact: true });
+  await expect(activeNivel2Chip).toHaveAttribute("aria-current", "page");
 });
 
 // --- Name search (spec 0004) ---
