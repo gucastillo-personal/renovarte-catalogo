@@ -18,6 +18,19 @@
 > un cambio de jerarquía/orden en la home, no de alcance funcional del
 > catálogo.
 
+> **Enmienda (2026-09-17):** se agrega **RF-13** — navegación/filtro de
+> categorías en dos niveles (agrupación de alto nivel — Cuidado facial,
+> Cuidado corporal, Cosmética, y un grupo genérico de fallback — y dentro
+> de cada una las categorías específicas ya existentes), en reemplazo de la
+> lista plana única de hoy. Origen: LACA/Serlaca distingue estos grupos en
+> su propia API (`productCategoryIds`), pero esa distinción no llega hoy a
+> `products.json` — depende de que `renovarte-pipeline` publique el campo
+> `codCategoria` (enmienda de schema del lado de ese repo, decisión de
+> negocio ya cerrada por el CTO/CEO el 2026-09-17; ver
+> [`specs/0015-agrupacion-categorias/spec.md`](../../specs/0015-agrupacion-categorias/spec.md)
+> acá y el spec espejo `0001` en `renovarte-pipeline`). No reemplaza RF-02
+> (seguir filtrando por categoría específica sigue siendo requisito).
+
 ---
 
 ## 1. Problema
@@ -93,6 +106,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RF-10 | El sistema debe poder incorporar precios de referencia desde el PDF público de LACA (por producto: Precio Profesional, Precio ABC y Precio Catálogo) y permitir al admin elegir, producto por producto, cuál de los precios sugeridos (ABC o Catálogo) usar como precio de venta publicado — por defecto el precio ABC. El Precio Profesional (lo que paga el revendedor) es información sensible tipo costo: solo se usa como referencia local para ver el margen implícito, nunca se commitea ni se puede publicar como precio de venta. |
 | RF-11 *(enmienda 2026-09-14)* | La home debe presentar, como bloque principal — lo primero y más prominente que ve el visitante, antes que cualquier producto — una sección de misión/marca de RenovArte con el mensaje de identidad de marca definido por el negocio (basado en la primera publicación de Instagram de @renovarte_by_juli). |
 | RF-12 *(enmienda 2026-09-14)* | El catálogo de productos (grilla, filtro por categoría, buscador — RF-01 a RF-04) debe seguir mostrándose en la home, como contenido secundario, después de la sección de misión, sin perder ninguna funcionalidad existente. |
+| RF-13 *(enmienda 2026-09-17)* | El usuario debe poder navegar/filtrar el catálogo en dos niveles: primero una agrupación de alto nivel de categorías (Cuidado facial, Cuidado corporal, Cosmética, y un grupo genérico de fallback para lo que no matchea ninguno de los tres, fuente: `codCategoria` en `products.json`), y dentro de cada grupo, las categorías específicas ya existentes (RF-02) — en vez de una única lista plana que mezcla todas las categorías. |
 
 ## 6. Requisitos no funcionales
 

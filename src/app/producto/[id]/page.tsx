@@ -6,7 +6,14 @@ import { notFound } from "next/navigation";
 import { OfferBadge } from "@/components/OfferBadge";
 import { ProductPrice } from "@/components/ProductPrice";
 import { slugifyCategoria } from "@/lib/category-slug";
-import { getAllProducts, getProductById } from "@/lib/products";
+import { TAG_CHIP } from "@/lib/chip-styles";
+import {
+  codCategoriasOf,
+  getAllProducts,
+  getGrupoNombre,
+  getGrupoSlug,
+  getProductById,
+} from "@/lib/products";
 
 // Only the ids returned by generateStaticParams exist; anything else 404s.
 export const dynamicParams = false;
@@ -34,6 +41,12 @@ export default async function ProductPage({
   const product = getProductById(id);
   if (!product) notFound();
 
+  // ux.md "Multi-grupo" point 2: the grid never marks which group a card
+  // was reached from, but the detail page declares every group the
+  // product belongs to (0, 1 or 2+) — a chip per group, reusing the same
+  // tag-chip style as the existing categoria chip (no new variant).
+  const grupos = codCategoriasOf(product);
+
   return (
     <article className="flex flex-col gap-8 md:flex-row md:gap-12">
       <div className="w-full md:max-w-sm">
@@ -54,10 +67,19 @@ export default async function ProductPage({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/categoria/${slugifyCategoria(product.categoria)}`}
-            className="rounded bg-sage-100 px-2 py-0.5 text-sm text-sage-700 hover:bg-sage-200"
+            className={TAG_CHIP}
           >
             {product.categoria}
           </Link>
+          {grupos.map((grupo) => {
+            const slug = getGrupoSlug(grupo);
+            if (!slug) return null;
+            return (
+              <Link key={grupo} href={`/grupo/${slug}`} className={TAG_CHIP}>
+                {getGrupoNombre(grupo)}
+              </Link>
+            );
+          })}
           {product.en_oferta && (
             <OfferBadge descuentoPct={product.descuento_pct} className="text-sm" />
           )}

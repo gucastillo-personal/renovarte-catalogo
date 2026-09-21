@@ -119,6 +119,53 @@ test("unknown category slug renders the 404 page (AC-2)", async ({ page }) => {
   expect(res?.status()).toBe(404);
 });
 
+// --- Two-level category grouping, Fase 1 (spec 0015 — RF-13) ---
+//
+// codCategoria doesn't exist in today's public/data/products.json yet (it
+// arrives via a future PR from renovarte-pipeline, Fase 2 — see ux.md
+// "Acceso directo a una categoría específica desde /"). Until then,
+// getGroupList() is [] and nivel 1 (CategoryNav) degrades to *exactly*
+// spec 0003's flat category list — no /grupo/* pages exist yet, and "/"
+// keeps showing every specific category one click away, same as before
+// this spec. This is why tests/e2e/catalog.spec.ts:88/:98 (spec 0003)
+// don't need to change for Fase 1: with today's data they exercise the
+// same behavior they always did. Nivel 1 only switches to group chips
+// once real groups exist (Fase 2, tasks.md T20) — see
+// tests/unit/category-nav-with-groups.test.tsx for that branch, covered
+// with an in-memory fixture since it can't be exercised against today's
+// real data.
+
+test("unknown group slug renders the 404 page (spec 0015)", async ({ page }) => {
+  const res = await page.goto("/grupo/no-existe");
+  expect(res?.status()).toBe(404);
+});
+
+test("home still shows the flat category list while no real group exists yet (spec 0015, Fase 1 fallback — no regression on spec 0003)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Categorías" });
+  await expect(nav.getByRole("link", { name: "Todos" })).toBeVisible();
+  // Today's data has 0 real groups, so nivel 1 falls back to spec 0003's
+  // flat list: specific-category chips are present, /grupo/* chips are
+  // not (there's nothing to link to yet).
+  await expect(
+    page.locator('nav[aria-label="Categorías"] a[href^="/categoria/"]'),
+  ).not.toHaveCount(0);
+  await expect(page.locator('nav[aria-label="Categorías"] a[href^="/grupo/"]')).toHaveCount(0);
+});
+
+test("home has no horizontal scroll at 390px with the nivel-1/nivel-2 row layout (spec 0015, AC-5)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
 test("category page has no horizontal scroll at 390px (AC-4)", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/categoria/${sampleSlug}`);
