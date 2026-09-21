@@ -3,8 +3,9 @@ import "server-only";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { CATEGORY_GROUP_IDS, isCodCategoria, type CodCategoria } from "@/lib/category-groups";
 import { slugifyCategoria } from "@/lib/category-slug";
-import { validateProducts, type Product } from "@/lib/types";
+import { validateGroupNames, validateProducts, type Product } from "@/lib/types";
 
 /**
  * Build-time catalog loader. Reads the static `public/data/products.json`
@@ -94,4 +95,192 @@ export function getProductsByCategoria(categoria: string): Product[] {
 /** Products flagged `en_oferta` (set in renovarte-pipeline's data/offers.json — spec 0005). */
 export function getProductsOnOffer(): Product[] {
   return load().filter((p) => p.en_oferta);
+}
+
+// --- High-level category groups (spec 0015 — RF-13) ---
+//
+// Two layers: pure functions (below), testable with in-memory fixtures, and
+// cached wrappers (further down) that feed them from `load()` +
+// `loadGroupNames()` — same split `getCategoryList()` already keeps between
+// derivation and file I/O, done explicitly here so Fase 1 doesn't depend on
+// `public/data/products.json` carrying `codCategoria` yet.
+
+export interface GroupEntry {
+  codCategoria: CodCategoria;
+  slug: string;
+  nombre: string;
+  count: number;
+}
+
+/**
+ * `codCategoria` schema (`renovarte-pipeline` spec 0001, closed 2026-09-18):
+ * `Product.codCategoria` is an **array** of raw group ids — a product can
+ * belong to more than one group at once (confirmed against the real
+ * Serlaca API, a fact that arrived after `plan.md`'s original design; see
+ * `ux.md` "Multi-grupo" and its "Divergencias respecto de `plan.md`"). This
+ * module derives from that array, not a single id.
+ *
+ * The recognized, deduplicated group ids for one product, in the fixed
+ * business order `CATEGORY_GROUP_IDS`. An absent `codCategoria`, an empty
+ * array, or unrecognized ids all resolve to `[]` — never throws (AC-6):
+ * the product still shows up in "Todos" and its own `categoria`, it just
+ * doesn't count for any group chip.
+ */
+export function codCategoriasOf(product: Product): CodCategoria[] {
+  if (!product.codCategoria) return [];
+  const recognized = new Set(product.codCategoria.filter(isCodCategoria));
+  return CATEGORY_GROUP_IDS.filter((id) => recognized.has(id));
+}
+
+/**
+ * For each distinct `categoria`, the **set** of groups any of its products
+ * belong to (union across products, deduplicated, in business order) —
+ * not a single winner. `plan.md` originally modeled this as a majority
+ * vote assuming a `categoria` maps to exactly one group; that assumption
+ * was confirmed false against real data (a `categoria` can genuinely
+ * belong to 2+ groups, e.g. "Antiage" in both Cuidado facial and Cuidado
+ * corporal — `ux.md` "Multi-grupo"). Products with no recognized group
+ * (`codCategoriasOf` returns `[]`) don't contribute.
+ */
+export function deriveCategoriaGrupoMap(products: Product[]): Map<string, CodCategoria[]> {
+  const byCategoria = new Map<string, Set<CodCategoria>>();
+
+  for (const product of products) {
+    const grupos = codCategoriasOf(product);
+    if (grupos.length === 0) continue;
+
+    let set = byCategoria.get(product.categoria);
+    if (!set) {
+      set = new Set<CodCategoria>();
+      byCategoria.set(product.categoria, set);
+    }
+    for (const g of grupos) set.add(g);
+  }
+
+  const result = new Map<string, CodCategoria[]>();
+  for (const [categoria, set] of byCategoria) {
+    result.set(categoria, CATEGORY_GROUP_IDS.filter((id) => set.has(id)));
+  }
+  return result;
+}
+
+/**
+ * The 4 groups with their URL slug, business name and product count, in
+ * the fixed business order `CATEGORY_GROUP_IDS` (1→2→3→4 — not
+ * alphabetical, unlike `getCategoryList`). A group with 0 products is
+ * omitted (same criterion "Ofertas" already uses in `CategoryNav`, and
+ * `ux.md` confirms for "Otros"). `nombre` falls back to the raw id when
+ * `groupNames` doesn't resolve it (defensive — never throws for a missing
+ * name). Takes `groupNames` as a parameter (doesn't read the file itself)
+ * so it's testable with a fixture map, same as `products`.
+ *
+ * A product counts once per group it belongs to, so with multi-membership
+ * the sum of every `count` can exceed `products.length` — expected, not a
+ * bug (`ux.md` "Multi-grupo" point 3).
+ */
+export function deriveGroupList(
+  products: Product[],
+  groupNames: Partial<Record<CodCategoria, string>>,
+): GroupEntry[] {
+  const counts = new Map<CodCategoria, number>();
+  for (const product of products) {
+    for (const g of codCategoriasOf(product)) {
+      counts.set(g, (counts.get(g) ?? 0) + 1);
+    }
+  }
+
+  const entries: GroupEntry[] = [];
+  for (const codCategoria of CATEGORY_GROUP_IDS) {
+    const count = counts.get(codCategoria) ?? 0;
+    if (count === 0) continue;
+    const nombre = groupNames[codCategoria] ?? codCategoria;
+    entries.push({ codCategoria, slug: slugifyCategoria(nombre), nombre, count });
+  }
+  return entries;
+}
+
+/**
+ * `codCategoria` -> business name, from `public/data/serlaca_category_groups.json`
+ * — published by `renovarte-pipeline` (spec espejo 0001), never edited by
+ * hand here (constitution §I.2). Tolerant to the file not existing yet
+ * (Fase 1 of spec 0015): falls back to `{}` instead of failing the build,
+ * so every group shows its raw id until the pipeline publishes it.
+ */
+const GROUP_NAMES_FILE = path.join(
+  process.cwd(),
+  "public",
+  "data",
+  "serlaca_category_groups.json",
+);
+
+let groupNamesCache: Partial<Record<CodCategoria, string>> | undefined;
+
+function loadGroupNames(): Partial<Record<CodCategoria, string>> {
+  if (groupNamesCache) return groupNamesCache;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(GROUP_NAMES_FILE, "utf-8"));
+  } catch {
+    // Not published yet by renovarte-pipeline (spec espejo 0001) — doesn't
+    // break the build in the meantime (spec 0015, Fase 1).
+    groupNamesCache = {};
+    return groupNamesCache;
+  }
+  groupNamesCache = validateGroupNames(raw);
+  return groupNamesCache;
+}
+
+let groupListCache: GroupEntry[] | undefined;
+
+/** The 4 groups with slug/name/count, cached — see `deriveGroupList`. */
+export function getGroupList(): GroupEntry[] {
+  if (groupListCache) return groupListCache;
+  groupListCache = deriveGroupList(load(), loadGroupNames());
+  return groupListCache;
+}
+
+/** Group id for a URL slug, or `undefined` if no group maps to it. */
+export function grupoFromSlug(slug: string): CodCategoria | undefined {
+  return getGroupList().find((g) => g.slug === slug)?.codCategoria;
+}
+
+/** URL slug for a group id, or `undefined` if that group has no products. */
+export function getGrupoSlug(codCategoria: CodCategoria): string | undefined {
+  return getGroupList().find((g) => g.codCategoria === codCategoria)?.slug;
+}
+
+/** Business name for a group id, falling back to the raw id if unresolved. */
+export function getGrupoNombre(codCategoria: CodCategoria): string {
+  return getGroupList().find((g) => g.codCategoria === codCategoria)?.nombre ?? codCategoria;
+}
+
+/** Products belonging to a group (possibly among others), same order as `getAllProducts()`. */
+export function getProductsByGrupo(codCategoria: CodCategoria): Product[] {
+  return load().filter((p) => codCategoriasOf(p).includes(codCategoria));
+}
+
+let categoriaGruposMapCache: Map<string, CodCategoria[]> | undefined;
+
+/**
+ * The groups a specific `categoria` belongs to — `[]`, one, or several
+ * (see `deriveCategoriaGrupoMap`). Nivel-1 highlighting (`CategoryNav`)
+ * only makes sense for the "exactly one" case; callers decide what to do
+ * with 0 or 2+ (`ux.md` "Multi-grupo" point 4).
+ */
+export function getCategoriaGrupos(categoria: string): CodCategoria[] {
+  if (!categoriaGruposMapCache) categoriaGruposMapCache = deriveCategoriaGrupoMap(load());
+  return categoriaGruposMapCache.get(categoria) ?? [];
+}
+
+/**
+ * Specific categories belonging to any of the given groups — the union,
+ * deduplicated by slug (not just one group's categories), same shape as
+ * `getCategoryList()`. Used by `GroupCategoryNav` both for a single group
+ * (`/grupo/[slug]`) and for the ambiguous 2+ case on `/categoria/[slug]`
+ * (`ux.md` "Multi-grupo" point 4). `[]` in, `[]` out.
+ */
+export function getCategoryListForGrupos(grupos: CodCategoria[]): CategoryEntry[] {
+  if (grupos.length === 0) return [];
+  const set = new Set(grupos);
+  return getCategoryList().filter((c) => getCategoriaGrupos(c.nombre).some((g) => set.has(g)));
 }

@@ -6,7 +6,7 @@
 | **Fecha** | 2026-09-10 |
 | **PRD relacionado** | [PRD — Catálogo RenovArte](../PRD/PRD-catalogo-renovarte.md) |
 | **Reemplaza** | — |
-| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)). 2026-09-12 — §1/§2.2/§2.3/§2.4/§2.5: el PDF de precios LACA pasa de referencia pasiva a fuente opcional de `precio_venta` por producto, vía decisión manual del admin (ver [spec 0008](../../specs/0008-pdf-price-override/spec.md)). **2026-09-14 — migración completa**: todo el pipeline de ingesta descripto en §2.2-§2.5 y §4 (`scripts/ingest.ts`, `scripts/transform.ts`, `scripts/lib/**`, la extracción Python del PDF) se extrajo a un repo separado, [`renovarte-pipeline`](https://github.com/gucastillo-personal/renovarte-pipeline) — ver nota debajo. |
+| **Enmiendas** | 2026-09-10 — §2.2: la API de serlaca (`Products/ReadProducts`) es fuente de ingesta soportada, no solo el export CSV manual (ver [spec 0009](../../specs/0009-api-ingest/spec.md)). 2026-09-11 — §2.4: campos opcionales `precio_regular` / `descuento_pct` para precio de oferta (ver [spec 0007](../../specs/0007-offer-pricing/spec.md)). 2026-09-12 — §1/§2.2/§2.3/§2.4/§2.5: el PDF de precios LACA pasa de referencia pasiva a fuente opcional de `precio_venta` por producto, vía decisión manual del admin (ver [spec 0008](../../specs/0008-pdf-price-override/spec.md)). **2026-09-14 — migración completa**: todo el pipeline de ingesta descripto en §2.2-§2.5 y §4 (`scripts/ingest.ts`, `scripts/transform.ts`, `scripts/lib/**`, la extracción Python del PDF) se extrajo a un repo separado, [`renovarte-pipeline`](https://github.com/gucastillo-personal/renovarte-pipeline) — ver nota debajo. **2026-09-17 — §2.4:** campo público opcional `codCategoria` (agrupación de alto nivel de categorías) y nueva ruta `/grupo/[slug]` (ver [spec 0015](../../specs/0015-agrupacion-categorias/spec.md), producido por el spec espejo `0001` de `renovarte-pipeline`). |
 
 > **Vigente desde 2026-09-14:** todo lo que este RFC describe sobre
 > ingesta, costo, margen, el PDF de LACA y su extracción (§2.2, §2.3 en la
@@ -229,6 +229,79 @@ El campo `proveedor` está presente desde el día uno del modelo, aunque hoy sol
 > Ninguno de los dos contiene Precio Profesional, `precio_costo` ni margen —
 > ese dato vive únicamente en el crudo gitignorado de la extracción (mismo
 > nivel de exposición que `data/raw/serlaca_export.csv`).
+
+> **Enmienda 2026-09-17 (spec 0015 — agrupación de categorías en dos
+> niveles).** El schema público de `Product` suma un campo **opcional**:
+>
+> ```json
+> {
+>   "...": "...",
+>   "codCategoria": ["1", "2"]
+> }
+> ```
+>
+> `codCategoria` es la **lista** de ids crudos de agrupación de alto nivel
+> de Serlaca a los que pertenece el producto (cada elemento en
+> `"1"`/`"2"`/`"3"`/`"4"`), producida por `renovarte-pipeline` (spec espejo
+> `0001-agrupacion-alto-nivel-categorias`). Es un array y no un id único
+> porque **un producto puede pertenecer a más de un grupo a la vez**:
+> verificado contra la API real de Serlaca (spec 0001, AC-1), 11 de las 24
+> categorías específicas de hoy aparecen repartidas entre más de un grupo,
+> lo que invalidó el supuesto original 1 producto = 1 grupo (ver enmienda
+> equivalente 2026-09-18 en el RFC de `renovarte-pipeline`, y `ux.md` de
+> spec 0015, sección "Multi-grupo"). Es **opcional en el tipo `Product` de
+> este repo** (no obligatorio), a pesar de que ese spec garantiza (su AC-2)
+> que todo producto que publique va a traer un array no vacío: el lado
+> receptor lo trata de forma defensiva — ausente, vacío, o con ids no
+> reconocidos (fuera de `"1"`-`"4"`) no rompe el build ni hace desaparecer
+> el producto de la vista general (`/`), solo hace que ese producto no
+> pertenezca a ningún grupo de alto nivel específico (spec 0015, AC-6). Un
+> producto que pertenece a 2+ grupos aparece en la grilla de cada uno de
+> ellos sin ninguna marca distintiva (misma card en todos los grupos); su
+> ficha individual (`/producto/[id]`) sí lista un chip por cada grupo al
+> que pertenece. Este es el mismo criterio ya aplicado a `categoria` y al
+> resto del schema: el catálogo es el "extremo receptor" (nota de
+> 2026-09-14 arriba) y no confía ciegamente en la forma exacta de un
+> artefacto generado por otro repo.
+>
+> El nombre visible de cada grupo (`"Cuidado facial"`, `"Cuidado
+> corporal"`, `"Cosmética"`, `"Otros"` — los 4 ya confirmados por el
+> CTO/CEO) **no viaja en `products.json`** — `codCategoria` es el id crudo.
+> **Decisión del CTO/CEO (2026-09-17, revisión posterior a la primera
+> versión de esta enmienda): `renovarte-pipeline` es la única fuente de
+> verdad del mapeo id → nombre** — vive en
+> `data/reference/serlaca_category_groups.json` de ese repo (spec espejo
+> `0001`, `plan.md` §2). `renovarte-catalogo` **no lo redefine ni lo
+> duplica a mano**: recibe una copia de ese mismo archivo en
+> `public/data/serlaca_category_groups.json`, publicada por
+> `renovarte-pipeline` con el **mismo mecanismo** que ya usa para
+> `products.json` (`pipeline/publish/run.py`, PR automático revisado y
+> mergeado a mano — nunca auto-merge) — el diccionario de archivos que ese
+> paso copia (`files_to_update` en `prepare_branch`) ya soporta más de una
+> entrada, así que sumar esta segunda ruta no es un mecanismo nuevo, es
+> extender el existente. **Esto requiere un cambio del lado de
+> `renovarte-pipeline`** (su `plan.md` actual, §9, lista
+> `pipeline/publish/*` explícitamente como "no tocado" — desactualizado
+> por esta decisión; coordinación entre specs, no resuelta unilateralmente
+> acá). `src/lib/category-groups.ts` en este repo queda reducido a la
+> lista fija de ids conocidos (`CATEGORY_GROUP_IDS`, el *orden* de
+> presentación 1→2→3→4) y un guard `isCodCategoria` — nunca los nombres.
+> El *loader* de `public/data/serlaca_category_groups.json` (en
+> `src/lib/products.ts`, mismo patrón que el de `products.json`) es
+> tolerante a que el archivo todavía no exista (no hay PR previo del
+> pipeline que lo haya publicado) o a que falte alguna clave: en ambos
+> casos no rompe el build, y un grupo sin nombre resuelto muestra su id
+> crudo como fallback en vez de tirar el catálogo entero — mismo criterio
+> "extremo receptor, no confía ciegamente" ya aplicado arriba a
+> `codCategoria` por producto.
+>
+> Arquitectura: se suma una ruta estática nueva, `src/app/grupo/[slug]/
+> page.tsx` (mismo patrón SSG que `categoria/[slug]`), para la vista de "solo
+> ese grupo". No se introduce una ruta anidada `/grupo/[g]/categoria/[c]`:
+> como los slugs de `categoria` ya son únicos en todo el catálogo (spec
+> 0003), `/categoria/[slug]` sigue siendo la URL canónica y compartible
+> para una categoría específica, y su grupo se deriva en el servidor al
+> renderizar (no vive en la URL). Detalle completo en `specs/0015-…/plan.md`.
 
 ### 2.5 Estructura de carpetas
 

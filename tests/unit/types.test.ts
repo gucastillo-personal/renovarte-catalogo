@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isProduct, validateProducts, type Product } from "@/lib/types";
+import { isProduct, validateGroupNames, validateProducts, type Product } from "@/lib/types";
 
 const valid: Product = {
   id: "1",
@@ -82,6 +82,72 @@ describe("isProduct — offer pricing (spec 0007)", () => {
     expect(isProduct({ ...onOffer, descuento_pct: 0 })).toBe(false);
     expect(isProduct({ ...onOffer, descuento_pct: 100 })).toBe(false);
     expect(isProduct({ ...onOffer, descuento_pct: 10.5 })).toBe(false);
+  });
+});
+
+describe("isProduct — codCategoria (spec 0015, array schema per renovarte-pipeline spec 0001)", () => {
+  it("accepts a product with no codCategoria (today's data)", () => {
+    expect(isProduct(valid)).toBe(true);
+  });
+
+  it("accepts an empty codCategoria array", () => {
+    expect(isProduct({ ...valid, codCategoria: [] })).toBe(true);
+  });
+
+  it("accepts an array with an unrecognized id (AC-6 — not rejected at the parse boundary)", () => {
+    expect(isProduct({ ...valid, codCategoria: ["9"] })).toBe(true);
+  });
+
+  it("accepts an array with a recognized id", () => {
+    expect(isProduct({ ...valid, codCategoria: ["1"] })).toBe(true);
+  });
+
+  it("accepts an array with more than one recognized id (multi-grupo)", () => {
+    expect(isProduct({ ...valid, codCategoria: ["1", "2"] })).toBe(true);
+  });
+
+  it("rejects a non-array codCategoria (e.g. the old single-string shape)", () => {
+    expect(isProduct({ ...valid, codCategoria: "1" })).toBe(false);
+  });
+
+  it("rejects an array containing a non-string element", () => {
+    expect(isProduct({ ...valid, codCategoria: [1] })).toBe(false);
+  });
+});
+
+describe("validateGroupNames (spec 0015)", () => {
+  const allFour = { "1": "Cuidado facial", "2": "Cuidado corporal", "3": "Cosmética", "4": "Otros" };
+
+  it("accepts an object with the 4 valid keys", () => {
+    expect(validateGroupNames(allFour)).toEqual(allFour);
+  });
+
+  it("discards an unrecognized key without throwing", () => {
+    expect(validateGroupNames({ ...allFour, "5": "Inventado" })).toEqual(allFour);
+  });
+
+  it("discards an empty-string value without throwing (that key is absent from the result)", () => {
+    expect(validateGroupNames({ ...allFour, "4": "" })).toEqual({
+      "1": "Cuidado facial",
+      "2": "Cuidado corporal",
+      "3": "Cosmética",
+    });
+  });
+
+  it("discards a non-string value without throwing", () => {
+    expect(validateGroupNames({ ...allFour, "4": 4 })).toEqual({
+      "1": "Cuidado facial",
+      "2": "Cuidado corporal",
+      "3": "Cosmética",
+    });
+  });
+
+  it("throws when raw is not a plain object (e.g. an array)", () => {
+    expect(() => validateGroupNames(["Cuidado facial"])).toThrow(/must be an object/);
+  });
+
+  it("throws when raw is null", () => {
+    expect(() => validateGroupNames(null)).toThrow(/must be an object/);
   });
 });
 
