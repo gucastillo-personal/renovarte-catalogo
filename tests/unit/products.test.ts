@@ -232,42 +232,83 @@ describe("deriveGroupList", () => {
   });
 });
 
-// --- Wrappers against today's real files (Fase 1 regression) ---
+// --- Wrappers against real data (Fase 2 — tasks.md T19) ---
 //
-// public/data/products.json has no codCategoria yet (Fase 2 — the PR from
-// renovarte-pipeline with real data — hasn't merged) and
-// public/data/serlaca_category_groups.json doesn't exist yet — every
-// wrapper must degrade gracefully (no throw) instead of hiding products
-// (AC-6).
+// renovarte-pipeline published codCategoria (public/data/products.json) and
+// serlaca_category_groups.json (2026-09-21, PR to this branch). Assertions
+// here are deliberately robust to the next pipeline refresh — no hardcoded
+// exact counts/names — checking shape/non-emptiness/resolved-name
+// invariants instead, per tasks.md T19. The old Fase-1 "degrades to []
+// gracefully" behavior stays covered by the in-memory-fixture tests above
+// (deriveGroupList's "omits a group with 0 products" / falls-back-to-raw-id
+// cases already exercise that path without depending on real data being
+// empty).
 
-describe("group wrappers (spec 0015) — against today's data (no codCategoria yet)", () => {
-  it("getGroupList returns []", () => {
-    expect(getGroupList()).toEqual([]);
+describe("group wrappers (spec 0015) — against real data", () => {
+  it("getGroupList is non-empty, in fixed business order, with resolved names and positive counts", () => {
+    const list = getGroupList();
+    expect(list.length).toBeGreaterThan(0);
+    expect(list.map((g) => g.codCategoria)).toEqual(
+      [...list.map((g) => g.codCategoria)].sort(),
+    );
+    for (const group of list) {
+      expect(group.count).toBeGreaterThan(0);
+      // Resolved from serlaca_category_groups.json, not the raw-id fallback
+      // deriveGroupList uses when a name is missing (covered above).
+      expect(group.nombre).not.toBe(group.codCategoria);
+      expect(group.slug).toBe(slugifyCategoria(group.nombre));
+    }
   });
 
-  it("grupoFromSlug returns undefined for any slug", () => {
-    expect(grupoFromSlug("cuidado-facial")).toBeUndefined();
+  it("grupoFromSlug / getGrupoSlug round-trip every real group, and grupoFromSlug rejects an unknown slug", () => {
+    for (const group of getGroupList()) {
+      expect(grupoFromSlug(group.slug)).toBe(group.codCategoria);
+      expect(getGrupoSlug(group.codCategoria)).toBe(group.slug);
+    }
+    expect(grupoFromSlug("no-existe-este-grupo")).toBeUndefined();
   });
 
-  it("getGrupoSlug returns undefined for any codCategoria", () => {
-    expect(getGrupoSlug("1")).toBeUndefined();
+  it("getGrupoNombre resolves a real business name for every group", () => {
+    for (const group of getGroupList()) {
+      expect(getGrupoNombre(group.codCategoria)).toBe(group.nombre);
+    }
   });
 
-  it("getGrupoNombre falls back to the raw id (no name resolved)", () => {
-    expect(getGrupoNombre("1")).toBe("1");
+  it("getProductsByGrupo returns exactly the products that belong to that group", () => {
+    const group = getGroupList()[0]!;
+    const products = getProductsByGrupo(group.codCategoria);
+    expect(products).toHaveLength(group.count);
+    expect(products.every((p) => codCategoriasOf(p).includes(group.codCategoria))).toBe(true);
   });
 
-  it("getProductsByGrupo returns []", () => {
-    expect(getProductsByGrupo("1")).toEqual([]);
+  it("getCategoriaGrupos resolves at least one real category unambiguously to a single group", () => {
+    const single = getCategoryList().find(
+      (c) => getCategoriaGrupos(c.nombre).length === 1,
+    );
+    expect(single).toBeDefined();
   });
 
-  it("getCategoriaGrupos returns [] for a real category", () => {
-    const realCategoria = getCategoryList()[0]!.nombre;
-    expect(getCategoriaGrupos(realCategoria)).toEqual([]);
+  it("real multi-group case: a categoria whose products span 2+ groups (ux.md 'Multi-grupo' punto 4)", () => {
+    // Confirmed finding against real pipeline data (2026-09-21): several
+    // categories (e.g. "Labios") span more than one group because
+    // different products within the *same* categoria each carry a single
+    // codCategoria that differs from their siblings' — not because any
+    // individual product carries 2+ ids itself (none does today, per
+    // codCategoriasOf above). The union rule in deriveCategoriaGrupoMap /
+    // ux.md point 4 is what makes this resolve correctly either way.
+    const multi = getCategoryList().find((c) => getCategoriaGrupos(c.nombre).length >= 2);
+    expect(multi).toBeDefined();
+
+    const grupos = getCategoriaGrupos(multi!.nombre);
+    expect(new Set(grupos).size).toBe(grupos.length); // deduped
+
+    // ux.md point 4: nivel 2 shows the union of categories across every
+    // group involved, and the ambiguous categoria itself is part of it.
+    const union = getCategoryListForGrupos(grupos);
+    expect(union.some((c) => c.slug === multi!.slug)).toBe(true);
   });
 
-  it("getCategoryListForGrupos returns [] for any group, and [] for an empty group list", () => {
-    expect(getCategoryListForGrupos(["1"])).toEqual([]);
+  it("getCategoryListForGrupos([]) is still []", () => {
     expect(getCategoryListForGrupos([])).toEqual([]);
   });
 });
