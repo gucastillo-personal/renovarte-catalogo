@@ -223,7 +223,7 @@ fases separadas por una dependencia externa sin fecha propia.**
 > `codCategoria: string[]`, no un id único); lo que falta en Fase 2 es
 > solo verificar con datos reales, no rediseñar de nuevo.
 
-- [ ] **T19.** Extender `tests/unit/group-category-nav.test.tsx` y
+- [x] **T19.** Extender `tests/unit/group-category-nav.test.tsx` y
   `tests/unit/products.test.ts` con aserciones de contenido real (grupo
   con productos reales, conteos, nombres resueltos desde el
   `serlaca_category_groups.json` real — no el fallback al id crudo,
@@ -231,7 +231,7 @@ fases separadas por una dependencia externa sin fecha propia.**
   de una `categoria` perteneciendo a 2+ grupos, para confirmar la regla de
   `ux.md` "Multi-grupo" punto 4 contra datos reales y no solo fixtures).
   *Check:* tests en verde contra los dos archivos reales ya actualizados.
-- [ ] **T20.** Extender `tests/e2e/catalog.spec.ts`: elegir un grupo real
+- [x] **T20.** Extender `tests/e2e/catalog.spec.ts`: elegir un grupo real
   con productos, verificar AC-1 (nivel 1 visible, sin lista plana por
   defecto en `/` — ahora sí, porque `getGroupList()` deja de estar vacío),
   AC-2 (grilla y nivel 2 acotados al grupo elegido), AC-5 a 390px con la
@@ -253,9 +253,11 @@ fases separadas por una dependencia externa sin fecha propia.**
     explícitamente de `getGroupList()` estar vacío, condición que Fase 2
     rompe a propósito.
   *Check:* `pnpm test:e2e` en verde.
-- [ ] **T21.** Correr el gate completo de nuevo: `pnpm gate`. *Check:*
-  verde con datos reales — cierra Fase 2.
-- [ ] **T22.** Actualizar `specs/README.md`: fila de la spec 0015 pasa de
+- [x] **T21.** Correr el gate completo de nuevo: `pnpm gate`. *Check:*
+  verde con datos reales — cierra Fase 2. (lint, build — incluye 3 páginas
+  SSG `/grupo/*` — typecheck, 111 tests unitarios, `check:leak`, 31 tests
+  e2e (1 skip, sin oferta flag-only hoy).)
+- [x] **T22.** Actualizar `specs/README.md`: fila de la spec 0015 pasa de
   "Backlog — bloqueado por `renovarte-pipeline`" a "Built" (con conteo de
   tests), y la fila de RF-13 en la matriz de trazabilidad refleja el
   estado construido. *Check:* diff revisado, sin menciones colgantes de
