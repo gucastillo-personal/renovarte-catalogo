@@ -31,6 +31,62 @@
 > acá y el spec espejo `0001` en `renovarte-pipeline`). No reemplaza RF-02
 > (seguir filtrando por categoría específica sigue siendo requisito).
 
+> **Enmienda (2026-09-21):** se agregan **RF-14**, **RNF-06** y **RNF-07** —
+> un chat conversacional embebido ("Colibrí", nombre elegido por el
+> CTO/CEO) donde el visitante indica tipo de piel y presupuesto, y recibe 3
+> opciones de combo de cremas (más barato / medio / premium) armadas
+> **siempre** a partir de productos reales del catálogo publicado, nunca
+> inventados. Motivación explícita del CTO/CEO, además del valor para el
+> visitante: practicar RAG/embeddings y comunicación con LLMs vía API
+> (cuenta de Anthropic/Claude ya existente) — un objetivo de aprendizaje
+> legítimo, análogo al de `renovarte-events` (POC de arquitectura
+> event-driven). El CTO/CEO ya se imagina esto construido como 2 proyectos
+> nuevos (uno para el websocket del chat, otro para la conexión con el/los
+> LLM) además de la UI acá — **esa arquitectura no se decide en este PRD**,
+> queda como contexto para la fase de RFC/diseño (ver
+> [`specs/0016-chat-recomendador-cremas/spec.md`](../../specs/0016-chat-recomendador-cremas/spec.md),
+> sección "Preguntas abiertas", incluido un posible conflicto con
+> `constitution.md §II.4` — "no database, no runtime backend" — que no se
+> resuelve acá).
+
+> **Precisión (2026-09-21):** el CTO/CEO resolvió 5 de las 6 preguntas
+> abiertas que dejaba la enmienda anterior. Se agrega **RNF-08** y se
+> precisa **RF-14** (sin cambiar su numeración): (a) el runtime del chat
+> (transporte en vivo, conexión al LLM, RAG) vive enteramente en 2
+> proyectos nuevos fuera de este repo — `renovarte-catalogo` nunca aloja
+> backend propio, solo lo consume como cliente desde el navegador, lo que
+> **resuelve sin enmienda** la tensión con `constitution.md §II.4`: la
+> invariante nunca se viola porque el runtime nunca vive acá; (b) cada
+> combo es un paquete de 2 o más productos reales, nunca un único producto
+> por nivel; (c) las opciones "más barato" y "medio" respetan el
+> presupuesto declarado como techo, y "premium" puede superarlo pero nunca
+> más de un 20%; (d) `renovarte-pipeline` y el schema de `products.json`
+> no cambian para esta feature — el tipo de piel se infiere sobre campos
+> de texto libre ya públicos (`nombre`, `descripcion`, `tags`), sin campo
+> estructurado nuevo; (e) la topología queda confirmada en 2 proyectos
+> nuevos (transporte del chat / conexión-RAG con el LLM), sin definir
+> todavía nombres, repos ni stack — eso sigue siendo del RFC de diseño.
+> Sigue **sin resolver** el techo de costo de uso de la API de Claude
+> (tensiona con RNF-01) — se define recién en la fase de RFC/diseño, con
+> aprobación del CTO/CEO ahí. Detalle en
+> [`specs/0016-chat-recomendador-cremas/spec.md`](../../specs/0016-chat-recomendador-cremas/spec.md).
+
+> **Enmienda (2026-09-21b):** el CTO/CEO resolvió la última pregunta
+> abierta de RF-14: se agrega **RNF-09** — techo de gasto mensual de la
+> API del LLM de **USD 20/mes**; al alcanzarlo, el chat se deshabilita
+> automáticamente (deja de generar gasto) mientras el resto del catálogo
+> sigue funcionando con normalidad (misma garantía de RNF-07). Esto es una
+> **excepción explícita y acotada al chat**, aprobada por el CTO/CEO, al
+> invariante "$0 infraestructura" (RNF-01 / `constitution.md §II.5`), que
+> sigue aplicando sin cambios al resto del catálogo (grilla, filtro,
+> búsqueda, ficha de producto, hosting). El CTO/CEO también encuadró el
+> chat explícitamente como ejercicio de aprendizaje (practicar RAG/
+> embeddings/integración con LLMs) y **no** como una feature de
+> optimización de ventas — ver `specs/0016-chat-recomendador-cremas/spec.md`
+> §Alcance/Out para el detalle de qué queda fuera (analytics de
+> conversión, A/B testing, etc.). No quedan preguntas abiertas para esta
+> feature; pasa a fase de diseño/RFC.
+
 ---
 
 ## 1. Problema
@@ -75,6 +131,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Carga/actualización de catálogo vía script manual (no requiere panel de administración en esta fase).
 - Carga de precios de referencia desde el PDF público de LACA (precio ABC y precio de lista), con revisión y decisión manual por producto (spec 0008).
 - **(Enmienda)** Sección de misión/marca ("nosotros") en la home, ubicada como bloque principal, antes del catálogo de productos, con el copy de la identidad de marca de RenovArte.
+- **(Enmienda 2026-09-21)** Chat conversacional embebido ("Colibrí") que, a partir de tipo de piel y presupuesto declarados por el visitante, recomienda 3 combos de cremas (más barato / medio / premium) usando exclusivamente productos reales del catálogo publicado.
 
 ### 4.2 Fuera de alcance (Fase 1)
 - Carrito de compras y checkout.
@@ -84,6 +141,8 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Multi-proveedor activo (la arquitectura lo soporta, pero solo se carga LACA en esta fase).
 - Stock en tiempo real / disponibilidad.
 - **(Enmienda)** Presencia personal de Juli (fundadora, "cara de la marca"): foto, bio, firma. Se define en un feature futuro separado; esta fase usa solo el copy de marca, sin depender de esa pieza.
+- **(Enmienda 2026-09-21)** Compra/checkout desde el chat, historial de conversación persistido o cuentas de usuario, derivación a un humano (WhatsApp/teléfono) desde el chat, panel de administración de prompts/embeddings, entrada/salida por voz, y cualquier tema de conversación fuera de recomendación de cremas del catálogo de RenovArte. Ver detalle completo en `specs/0016-chat-recomendador-cremas/spec.md`.
+- **(Enmienda 2026-09-21b)** Optimización de conversión/ventas, analytics de negocio y A/B testing de combos sobre el chat. El CTO/CEO encuadró explícitamente esta feature como ejercicio de aprendizaje (practicar RAG/embeddings/integración con LLMs), no como una herramienta para optimizar ventas — ese encuadre se mantiene mientras el techo de gasto (RNF-09) siga en USD 20/mes.
 
 ### 4.3 Explícitamente fuera de la vista pública
 - Costo real de compra a LACA.
@@ -107,6 +166,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RF-11 *(enmienda 2026-09-14)* | La home debe presentar, como bloque principal — lo primero y más prominente que ve el visitante, antes que cualquier producto — una sección de misión/marca de RenovArte con el mensaje de identidad de marca definido por el negocio (basado en la primera publicación de Instagram de @renovarte_by_juli). |
 | RF-12 *(enmienda 2026-09-14)* | El catálogo de productos (grilla, filtro por categoría, buscador — RF-01 a RF-04) debe seguir mostrándose en la home, como contenido secundario, después de la sección de misión, sin perder ninguna funcionalidad existente. |
 | RF-13 *(enmienda 2026-09-17)* | El usuario debe poder navegar/filtrar el catálogo en dos niveles: primero una agrupación de alto nivel de categorías (Cuidado facial, Cuidado corporal, Cosmética, y un grupo genérico de fallback para lo que no matchea ninguno de los tres, fuente: `codCategoria` en `products.json`), y dentro de cada grupo, las categorías específicas ya existentes (RF-02) — en vez de una única lista plana que mezcla todas las categorías. |
+| RF-14 *(enmienda 2026-09-21, precisión 2026-09-21)* | El sitio debe ofrecer un chat conversacional embebido ("Colibrí") donde el visitante indica tipo de piel y presupuesto, y recibe 3 opciones de combo de cremas (más barato / medio / premium) — cada combo un paquete de 2 o más productos reales agrupados, nunca un único producto por nivel —, construidas exclusivamente con productos reales y vigentes del catálogo publicado — nunca un producto, precio o disponibilidad inventados. Las opciones "más barato" y "medio" no superan el presupuesto declarado por el visitante; "premium" puede superarlo, pero nunca en más de un 20%. |
 
 ## 6. Requisitos no funcionales
 
@@ -117,6 +177,10 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RNF-03 | El costo, margen y precio de lista de LACA no deben estar presentes en ningún archivo público ni en el bundle de JavaScript enviado al navegador. |
 | RNF-04 | El sitio debe ser responsive y usable en mobile. |
 | RNF-05 | El código debe quedar en un repositorio propio, documentado, apto para mostrarse como portfolio. |
+| RNF-06 *(enmienda 2026-09-21)* | El chat no debe exponer, en ninguna respuesta ni en el tráfico de red inspeccionable desde el navegador, credenciales/API keys de terceros (LLM), ni costo/margen real de RenovArte — mismo invariante de RNF-03, extendido al chat. |
+| RNF-07 *(enmienda 2026-09-21)* | Si el chat no está disponible, el resto del catálogo (grilla, filtro, búsqueda, ficha de producto — RF-01 a RF-04) debe seguir funcionando con normalidad. |
+| RNF-08 *(nuevo, precisión 2026-09-21)* | El runtime del chat (transporte en vivo, conexión al LLM, RAG) debe vivir exclusivamente en servicios externos a `renovarte-catalogo`; este repo se mantiene 100% estático (sin backend/DB propio en runtime) y solo actúa como cliente que consume esos servicios desde el navegador — mismo invariante de `constitution.md §II.4`, extendido explícitamente al chat. |
+| RNF-09 *(nuevo, enmienda 2026-09-21b)* | El gasto mensual de la API del LLM usado por el chat tiene un techo de **USD 20/mes**. Al alcanzar ese techo, el chat debe deshabilitarse automáticamente (sin seguir generando gasto), mientras el resto del catálogo (RF-01 a RF-04) sigue funcionando con normalidad, sin degradación — misma garantía de RNF-07. Esta es una excepción explícita y acotada al chat al invariante "$0 infraestructura" (RNF-01), aprobada por el CTO/CEO. |
 
 ## 7. Métricas de éxito (Fase 1)
 
@@ -134,6 +198,9 @@ Al no haber compra, el éxito de esta fase es cualitativo/operativo:
 | Catálogo desactualizado si no se corre el script a tiempo | Documentar el proceso en el README; evaluar automatización en fase futura |
 | Elegir precio ABC o Catálogo del PDF sin aplicar margen propio puede vender sin margen sobre el costo real | La revisión (spec 0008) muestra el precio actual (costo + margen) y el margen implícito de cada opción (contra Precio Profesional) antes de decidir; la elección es explícita y por producto, nunca automática para todo el catálogo |
 | El PDF trae Precio Profesional (costo del revendedor) mezclado con los precios públicos — tratarlo igual que ABC/Catálogo terminaría commiteando un dato de costo | Precio Profesional se extrae a un archivo gitignorado (mismo tratamiento que `data/raw/`); solo ABC y Catálogo llegan a `data/reference/` (committed) |
+| *(2026-09-21, resuelto)* Un chat con LLM en vivo requiere algún backend/servicio con estado | Resuelto sin enmendar `constitution.md §II.4`: el runtime (transporte, LLM, RAG) vive en 2 proyectos nuevos fuera de este repo; `renovarte-catalogo` nunca aloja backend propio, solo lo consume como cliente desde el navegador (RNF-08) |
+| *(2026-09-21)* El chat podría inventar/alucinar un producto, precio o combinación que no existe en el catálogo real | AC explícito de que toda recomendación debe verificarse contra `products.json` vigente antes de mostrarse; el mecanismo concreto (RAG u otro) se define en RFC |
+| *(2026-09-21, resuelto 2026-09-21b)* Llamadas a la API de Claude no son gratis por volumen, lo que tensiona con RNF-01 ("$0 infra") | Resuelto por el CTO/CEO: techo de gasto mensual de USD 20/mes (RNF-09), con auto-deshabilitación del chat al alcanzarlo — excepción explícita y acotada al chat al invariante "$0 infra", el resto del catálogo no se ve afectado. El mecanismo concreto de medición/corte de gasto queda para la fase de RFC/diseño. |
 
 ## 9. Fases futuras (fuera de este PRD, mencionadas para contexto)
 - Fase 2: carrito + checkout con Mercado Pago.
