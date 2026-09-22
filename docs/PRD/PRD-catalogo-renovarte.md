@@ -44,10 +44,19 @@
 > nuevos (uno para el websocket del chat, otro para la conexión con el/los
 > LLM) además de la UI acá — **esa arquitectura no se decide en este PRD**,
 > queda como contexto para la fase de RFC/diseño (ver
-> [`specs/0016-chat-recomendador-cremas/spec.md`](../../specs/0016-chat-recomendador-cremas/spec.md),
+> [`specs/0016-chat-recomendador-cremas/spec.md`](../../../specs/0016-chat-recomendador-cremas/spec.md),
 > sección "Preguntas abiertas", incluido un posible conflicto con
 > `constitution.md §II.4` — "no database, no runtime backend" — que no se
 > resuelve acá).
+>
+> **Nota de ubicación (2026-09-22):** esta feature toca 3 repos (este,
+> `renovarte-chat-gateway` y `renovarte-colibri-rag`, los últimos 2 nuevos y
+> todavía no creados) — el spec completo, `ux.md`, `plan.md`/`tasks.md` y los
+> RFC técnicos viven centralizados en
+> [`renovarte-parent/specs/0016-chat-recomendador-cremas/`](../../../specs/0016-chat-recomendador-cremas/spec.md),
+> no en este repo. Acá solo queda el registro de requisitos (`RF-14`,
+> `RNF-06..09`) y su historial de decisión — este repo se limita a lo que le
+> toca mostrar.
 
 > **Precisión (2026-09-21):** el CTO/CEO resolvió 5 de las 6 preguntas
 > abiertas que dejaba la enmienda anterior. Se agrega **RNF-08** y se
@@ -69,7 +78,8 @@
 > Sigue **sin resolver** el techo de costo de uso de la API de Claude
 > (tensiona con RNF-01) — se define recién en la fase de RFC/diseño, con
 > aprobación del CTO/CEO ahí. Detalle en
-> [`specs/0016-chat-recomendador-cremas/spec.md`](../../specs/0016-chat-recomendador-cremas/spec.md).
+> [`specs/0016-chat-recomendador-cremas/spec.md`](../../../specs/0016-chat-recomendador-cremas/spec.md)
+> (en `renovarte-parent`).
 
 > **Enmienda (2026-09-21b):** el CTO/CEO resolvió la última pregunta
 > abierta de RF-14: se agrega **RNF-09** — techo de gasto mensual de la
@@ -83,7 +93,7 @@
 > chat explícitamente como ejercicio de aprendizaje (practicar RAG/
 > embeddings/integración con LLMs) y **no** como una feature de
 > optimización de ventas — ver `specs/0016-chat-recomendador-cremas/spec.md`
-> §Alcance/Out para el detalle de qué queda fuera (analytics de
+> (en `renovarte-parent`) §Alcance/Out para el detalle de qué queda fuera (analytics de
 > conversión, A/B testing, etc.). No quedan preguntas abiertas para esta
 > feature; pasa a fase de diseño/RFC.
 
@@ -141,7 +151,7 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Multi-proveedor activo (la arquitectura lo soporta, pero solo se carga LACA en esta fase).
 - Stock en tiempo real / disponibilidad.
 - **(Enmienda)** Presencia personal de Juli (fundadora, "cara de la marca"): foto, bio, firma. Se define en un feature futuro separado; esta fase usa solo el copy de marca, sin depender de esa pieza.
-- **(Enmienda 2026-09-21)** Compra/checkout desde el chat, historial de conversación persistido o cuentas de usuario, derivación a un humano (WhatsApp/teléfono) desde el chat, panel de administración de prompts/embeddings, entrada/salida por voz, y cualquier tema de conversación fuera de recomendación de cremas del catálogo de RenovArte. Ver detalle completo en `specs/0016-chat-recomendador-cremas/spec.md`.
+- **(Enmienda 2026-09-21)** Compra/checkout desde el chat, historial de conversación persistido o cuentas de usuario, derivación a un humano (WhatsApp/teléfono) desde el chat, panel de administración de prompts/embeddings, entrada/salida por voz, y cualquier tema de conversación fuera de recomendación de cremas del catálogo de RenovArte. Ver detalle completo en `specs/0016-chat-recomendador-cremas/spec.md` (en `renovarte-parent`).
 - **(Enmienda 2026-09-21b)** Optimización de conversión/ventas, analytics de negocio y A/B testing de combos sobre el chat. El CTO/CEO encuadró explícitamente esta feature como ejercicio de aprendizaje (practicar RAG/embeddings/integración con LLMs), no como una herramienta para optimizar ventas — ese encuadre se mantiene mientras el techo de gasto (RNF-09) siga en USD 20/mes.
 
 ### 4.3 Explícitamente fuera de la vista pública
