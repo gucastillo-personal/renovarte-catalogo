@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { useMounted } from "@/lib/use-mounted";
 import { MISSION_SLIDES } from "@/lib/mission-content";
 
 const ARROW_BASE =
@@ -9,26 +10,6 @@ const ARROW_BASE =
 
 const DOT_BASE =
   "flex h-11 w-11 shrink-0 items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500";
-
-const noopSubscribe = () => () => {};
-
-/**
- * `true` only once the component has hydrated on the client, `false` during
- * SSR/SSG and on the very first client render (so the two match and there is
- * no hydration mismatch). Implemented with `useSyncExternalStore` instead of
- * a `useState` + `useEffect(() => setMounted(true), [])` pair — the more
- * common version of this pattern — because that pair trips this repo's
- * `react-hooks/set-state-in-effect` lint rule (setState synchronously inside
- * an effect); this is the React-documented alternative for "detect that
- * hydration has completed" that doesn't call `setState` from an effect body.
- */
-function useMounted(): boolean {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  );
-}
 
 /**
  * Progressive-enhancement layer of the mission carousel (spec 0011, `ux.md`

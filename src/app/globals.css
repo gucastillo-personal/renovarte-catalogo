@@ -37,3 +37,20 @@ h1,
   font-family: var(--font-serif);
   letter-spacing: 0.01em;
 }
+
+/*
+ * Colibrí chat (spec 0016) — combo card mount transition (`ux.md` "Cards de
+ * combo": "fade + translate-y-1"). Applied via `motion-safe:animate-[...]`
+ * at the call site, so `prefers-reduced-motion: reduce` gets the final state
+ * immediately with no animation, per `ux.md` "Accesibilidad".
+ */
+@keyframes chat-combo-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -30,6 +30,22 @@ pnpm install
 pnpm dev            # http://localhost:3000
 ```
 
+## Chat "Colibrí" (spec 0016)
+
+El widget de chat conversacional (`src/components/chat/`, `src/lib/chat/`)
+consume un WebSocket externo —
+[`renovarte-chat-gateway`](https://github.com/gucastillo-personal/renovarte-chat-gateway) +
+[`renovarte-colibri-rag`](https://github.com/gucastillo-personal/renovarte-colibri-rag),
+ninguno de los dos vive en este repo (`specs/constitution.md` §II.4, nota de
+referencia). Configuración: copiar
+[`.env.local.example`](./.env.local.example) a `.env.local` y completar
+`NEXT_PUBLIC_CHAT_WS_URL` con la URL `wss://` real una vez que el gateway
+esté desplegado — es una URL pública, no un secreto (AC-10/AC-12). Sin ese
+valor el chat entra directo al estado "no disponible" (razón local
+`connection_error`); el resto del catálogo (grilla, filtro, búsqueda,
+ficha) sigue funcionando sin cambios (AC-11), y así es como corre hoy este
+repo (ninguno de los 2 repos externos está desplegado todavía).
+
 ## Scripts
 
 | Comando | Qué hace |
