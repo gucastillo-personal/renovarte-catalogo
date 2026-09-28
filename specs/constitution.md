@@ -44,6 +44,23 @@ blocker, not a nit.
    `public/data/products.json`. Anything needing dynamic state (cart, live stock)
    is a future phase with its own RFC (PRD §4.2, §9).
 5. **$0 infrastructure.** Free tiers only in Phase 1 (RNF-01).
+
+> **Reference note (2026-09, spec 0016 "Colibrí"), not an amendment.**
+> Invariant 4 stands: this repo has no runtime backend of its own. The
+> "Colibrí" chat widget talks to a WebSocket gateway and an LLM/RAG
+> connector that live entirely outside this repo — two separate,
+> purpose-built projects, same pattern already used for invariant 1's
+> ingestion/pricing pipeline:
+> [`renovarte-chat-gateway`](https://github.com/gucastillo-personal/renovarte-chat-gateway)
+> (transport: connection lifecycle, message envelope, spend cutoff) and
+> [`renovarte-colibri-rag`](https://github.com/gucastillo-personal/renovarte-colibri-rag)
+> (LLM/RAG connector). This repo only adds a client-side WebSocket
+> component (`NEXT_PUBLIC_CHAT_WS_URL`, a public URL, never a secret) —
+> see `specs/0016-chat-recomendador-cremas/spec.md` (this repo closed this
+> as non-blocking: no amendment required) and the two external repos'
+> own `rfc-transporte-websocket.md`/`rfc-conector-llm-rag.md` for the
+> full design.
+
 6. **Static-first rendering.** Pages are statically generated (SSG). Fast initial
    load, good SEO for product detail pages (RNF-02, RFC §4).
 7. **Multi-provider ready, single-provider active.** The `proveedor` field exists
