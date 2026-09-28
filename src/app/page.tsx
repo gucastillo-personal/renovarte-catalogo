@@ -1,5 +1,6 @@
 import { CatalogView } from "@/components/CatalogView";
 import { CategoryNav } from "@/components/CategoryNav";
+import { ChatHomeInviteCard } from "@/components/chat/ChatHomeInviteCard";
 import { MissionSection } from "@/components/MissionSection";
 import { getAllProducts } from "@/lib/products";
 
@@ -11,6 +12,10 @@ export default function Home() {
       <MissionSection />
 
       <div className="my-10 border-t border-beige-200 sm:my-16" />
+
+      <div className="mb-10 sm:mb-16">
+        <ChatHomeInviteCard />
+      </div>
 
       <div id="catalogo" className="flex scroll-mt-4 flex-col gap-6">
         <h2 className="font-display text-2xl font-semibold tracking-tight text-sage-800">
