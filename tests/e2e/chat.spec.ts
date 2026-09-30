@@ -311,6 +311,27 @@ test("T14c: unavailable mid-conversation keeps the existing thread intact, only 
   await expect(page.getByRole("textbox", { name: "Mensaje para Colibrí" })).toBeDisabled();
 });
 
+test("T14d: a socket closed by the server reconnects with backoff, then shows 'no disponible' instead of hanging", async ({
+  page,
+}) => {
+  // Backoff is 500+1000+2000+4000+8000 ms before giving up.
+  test.setTimeout(60_000);
+  let connections = 0;
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.routeWebSocket(WS_URL, (ws) => {
+    connections += 1;
+    ws.close();
+  });
+  await page.goto("/");
+  await openViaFab(page);
+
+  await expect(page.getByTestId("chat-unavailable-block")).toBeVisible({ timeout: 30_000 });
+  expect(connections).toBe(6); // first attempt + 5 reconnects
+  expect(pageErrors).toEqual([]);
+  await expect(page.getByRole("textbox", { name: "Mensaje para Colibrí" })).toBeDisabled();
+});
+
 // --- T15: no_recommendation -----------------------------------------------
 
 test("T15: no_recommendation renders as a plain bubble, same shape as any assistant text", async ({
