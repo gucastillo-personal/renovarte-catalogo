@@ -97,6 +97,114 @@
 > conversión, A/B testing, etc.). No quedan preguntas abiertas para esta
 > feature; pasa a fase de diseño/RFC.
 
+> **Enmienda (2026-09-30):** se agregan **RF-15..RF-18** y **RNF-10..RNF-13**
+> — carrito de compras y generación de **orden de compra**, desde el
+> catálogo y desde los combos que propone Colibrí (RF-14), con la orden
+> llegando por mail a una casilla propia de RenovArte. Necesidad textual
+> del CTO/CEO: *"queremos sumar un carrito de compre que genere una orden
+> de compra , tanto desde el menu de catalgo de productos como desde las
+> opciones. porpuesta por nuestro bot. [...] el envio y la forma de pago
+> se maneja despues por el momento no aceptamos medios de pagos dentro de
+> la app [...] lo importeat ahora es que se pueda generar la orden. el
+> pedido o la orden debe llegar a una casilla de mail propia de
+> renovarte"*. Esto **mueve parcialmente** "Carrito de compras" de §4.2
+> (fuera de alcance) a §4.1: entra carrito + orden; **siguen fuera**
+> checkout con pago, pasarela de pago y definición de envío (se coordinan
+> después, fuera del sitio). Implicancia de arquitectura, no resuelta acá:
+> enviar el mail requiere un componente server-side que, por
+> `constitution.md §II.4` y RNF-08, no puede vivir en este repo — RNF-10
+> lo fija como requisito y el diseño concreto queda para la fase de RFC.
+> Hay preguntas abiertas que bloquean diseño (datos de contacto, copia al
+> visitante, casilla de destino, $0 infra). Spec completo — toca este repo
+> y al menos un componente externo — centralizado en
+> [`renovarte-parent/specs/0017-carrito-orden-compra/spec.md`](../../../specs/0017-carrito-orden-compra/spec.md);
+> acá solo queda el registro de requisitos.
+
+> **Precisión (2026-09-30b):** el CTO/CEO respondió las 5 preguntas
+> bloqueantes de la enmienda anterior. Textual: *"1 si pidamos direccion y
+> localidad 2 solo le damos un nuemro de orden , si tiene consulta scon la
+> orden no puede mandar un email o contastacnos por md directo de
+> instagram 3 los mail deven salir deven llegar aca
+> renovartebyjuli@gmail.com de donde salir a defirnir lo que salga mas
+> barato si aprovamos un tope, todo local, nuevo repo que se encagar de
+> manejar la creacion de las ordenes, asi a futuro podemos expandir
+> funcionalidad"*. Se precisan **RF-17**, **RF-18**, **RNF-10** y
+> **RNF-12** (sin cambiar numeración) y se agrega **RNF-14**: (a) dirección
+> y localidad son datos obligatorios de la orden; (b) sin copia al
+> visitante por mail — solo número de orden en pantalla y canales de
+> consulta (email / MD de Instagram de RenovArte); (c) destino
+> **renovartebyjuli@gmail.com**, remitente a definir en diseño (el más
+> barato); (d) se aprueba un **tope de costo** para el envío de órdenes —
+> excepción explícita y acotada a esta feature a RNF-01/`constitution.md
+> §II.5`, **monto todavía no definido** (bloquea la fase de RFC, no la de
+> UX); (e) la creación/envío de órdenes vive en un **repo nuevo propio**
+> dedicado a órdenes (no servicio de terceros), pensado para sumar
+> funcionalidad a futuro — forma técnica en RFC. RNF-12 se reformula: como
+> el email de RenovArte puede mostrarse al visitante para consultas, la
+> protección no es ocultar la dirección sino que el destinatario se fija
+> del lado del servidor y no puede elegirse desde el navegador. Detalle en
+> [`renovarte-parent/specs/0017-carrito-orden-compra/spec.md`](../../../specs/0017-carrito-orden-compra/spec.md).
+
+> **Precisión (2026-09-30c):** el CTO/CEO cerró lo que quedaba pendiente.
+> Textual: *"Monto del tope mensual 20 usd , Qué quisiste decir con "todo
+> local el manejo de las ordenes local, para el envio de mail si es costo
+> bajo usar terceros.  exactamente nuestro instagran es
+> renovarte_by_juli"*. Se precisan **RF-17**, **RNF-10** y **RNF-14** (sin
+> cambiar numeración): (a) tope de costo del sistema de órdenes **USD
+> 20/mes**, con el comportamiento al alcanzarlo ya propuesto (sin
+> objeciones); (b) el manejo de las órdenes (creación, validación,
+> anti-abuso, registro) es propio, en el repo nuevo; el **envío del mail**
+> puede usar un proveedor de terceros de bajo costo, invocado desde ese
+> repo y dentro del tope; (c) Instagram de RenovArte para consultas:
+> **@renovarte_by_juli**. No quedan preguntas que bloqueen la fase de RFC.
+
+> **Precisión (2026-09-30d):** en la gate de la fase de diseño, el CTO/CEO
+> sumó un canal secundario de entrega de la orden. Textual: *"spec 17 si
+> llegaramos a tener problemas con email speam stc el mecanismo secudnario
+> es recivir la orden por el mismo canal de discort para no perder la
+> orden si teneso problemas ocn el mail"*; y ante la pregunta de cuándo,
+> con qué datos y a qué canal: *"siempre a los dos, canal privado nuevo, de
+> acuerdo con las propuestas"*. Se agrega **RF-19** y se precisan **RF-18**
+> y **RNF-12** (sin cambiar numeración): (a) cada orden llega **siempre**
+> por mail **y** a un **canal privado nuevo de Discord** dedicado a
+> órdenes (no el canal técnico de la POC de eventos de la spec 0001) —
+> "solo si falla el mail" no alcanza, porque si el mail cae en spam el
+> servidor no se entera; (b) el mensaje lleva la orden completa, con datos
+> de contacto; (c) mismo número de orden en los dos canales, y un
+> reintento nunca duplica ni el mail ni el mensaje; (d) sin costo ni
+> margen en ningún canal; el webhook es secreto (nunca en el navegador ni
+> en un repo); (e) aprobadas por el CTO/CEO: registro seudonimizado de
+> órdenes por 90 días sin datos personales, y el email/teléfono del
+> visitante solo en la sesión de la pestaña mientras está en /carrito.
+> **Ley 25.326:** Discord pasa a ser otro lugar (además de Gmail) donde
+> quedan datos personales, sin plazo de borrado salvo borrado manual —
+> ver §8 y la pregunta abierta #12 de la spec. Detalle en
+> [`renovarte-parent/specs/0017-carrito-orden-compra/spec.md`](../../../specs/0017-carrito-orden-compra/spec.md).
+
+> **Precisión (2026-09-30e):** el CTO/CEO decidió sobre la retención y el
+> acceso de los datos en Discord. Textual: *"Borrado automatico de lso
+> mensajes a los 60 dias, el canal solo lo vamos a ver los
+> propietarios"*. Se precisan **RF-19** y **RNF-12** (sin cambiar
+> numeración): (a) los mensajes de órdenes del canal privado de Discord se
+> **borran automáticamente a los 60 días**; (b) el canal es visible **solo
+> para los propietarios** de RenovArte (configuración manual en Discord,
+> 2FA recomendado). Además queda resuelto, sin objeción, que ante falla
+> parcial la orden se confirma si al menos uno de los dos canales la
+> aceptó. Siguen como pasos antes de producción: aviso de privacidad que
+> mencione el canal, consulta profesional sobre AAIP/transferencia
+> internacional y retención en la casilla de Gmail (spec 0017, pregunta
+> #12).
+
+> **Precisión (2026-09-30f):** el CTO/CEO decidió la retención en Gmail.
+> Textual: *"sí, borrar los mails de Gmail a los 60 días"*. Se precisa
+> **RNF-12** (sin cambiar numeración): los mails de órdenes en
+> renovartebyjuli@gmail.com se borran a los 60 días, igual que los
+> mensajes de Discord — política de retención y paso operativo de
+> RenovArte (a mano, o automatizable con un filtro/Apps Script de Google
+> fuera de los repos), no código. Antes de producción quedan solo el
+> texto del aviso de privacidad y la consulta profesional opcional sobre
+> AAIP/transferencia internacional.
+
 ---
 
 ## 1. Problema
@@ -142,9 +250,10 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 - Carga de precios de referencia desde el PDF público de LACA (precio ABC y precio de lista), con revisión y decisión manual por producto (spec 0008).
 - **(Enmienda)** Sección de misión/marca ("nosotros") en la home, ubicada como bloque principal, antes del catálogo de productos, con el copy de la identidad de marca de RenovArte.
 - **(Enmienda 2026-09-21)** Chat conversacional embebido ("Colibrí") que, a partir de tipo de piel y presupuesto declarados por el visitante, recomienda 3 combos de cremas (más barato / medio / premium) usando exclusivamente productos reales del catálogo publicado.
+- **(Enmienda 2026-09-30)** Carrito de compras (sin login) al que se agregan productos desde el catálogo y combos completos propuestos por Colibrí, y generación de una orden de compra con datos de contacto del visitante, que llega por mail a una casilla propia de RenovArte. Pago y envío se coordinan después, fuera del sitio. *(Precisión 2026-09-30d)* La orden llega siempre, además, a un canal privado de Discord de RenovArte dedicado a órdenes (RF-19).
 
 ### 4.2 Fuera de alcance (Fase 1)
-- Carrito de compras y checkout.
+- ~~Carrito de compras y checkout.~~ **(Enmienda 2026-09-30)** El carrito y la orden de compra pasan a §4.1 (RF-15..RF-19). Siguen fuera: checkout con pago, cualquier medio de pago dentro del sitio, definición/cálculo de envío, stock/reserva, cuentas e historial de órdenes, panel de administración de órdenes. Ver `specs/0017-carrito-orden-compra/spec.md` (en `renovarte-parent`) §Alcance/Out.
 - Pasarela de pago (Mercado Pago u otra).
 - Registro/login de usuarios.
 - Panel de administración con UI (la actualización de datos es vía script + CSV).
@@ -177,6 +286,11 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RF-12 *(enmienda 2026-09-14)* | El catálogo de productos (grilla, filtro por categoría, buscador — RF-01 a RF-04) debe seguir mostrándose en la home, como contenido secundario, después de la sección de misión, sin perder ninguna funcionalidad existente. |
 | RF-13 *(enmienda 2026-09-17)* | El usuario debe poder navegar/filtrar el catálogo en dos niveles: primero una agrupación de alto nivel de categorías (Cuidado facial, Cuidado corporal, Cosmética, y un grupo genérico de fallback para lo que no matchea ninguno de los tres, fuente: `codCategoria` en `products.json`), y dentro de cada grupo, las categorías específicas ya existentes (RF-02) — en vez de una única lista plana que mezcla todas las categorías. |
 | RF-14 *(enmienda 2026-09-21, precisión 2026-09-21)* | El sitio debe ofrecer un chat conversacional embebido ("Colibrí") donde el visitante indica tipo de piel y presupuesto, y recibe 3 opciones de combo de cremas (más barato / medio / premium) — cada combo un paquete de 2 o más productos reales agrupados, nunca un único producto por nivel —, construidas exclusivamente con productos reales y vigentes del catálogo publicado — nunca un producto, precio o disponibilidad inventados. Las opciones "más barato" y "medio" no superan el presupuesto declarado por el visitante; "premium" puede superarlo, pero nunca en más de un 20%. |
+| RF-15 *(enmienda 2026-09-30)* | El visitante, sin login ni cuenta, debe poder agregar productos del catálogo a un carrito accesible desde cualquier página del sitio, ver su contenido (nombre, presentación, precio unitario, cantidad, subtotal, total), cambiar cantidades, quitar productos y vaciarlo; el carrito se conserva al navegar y al recargar, en el mismo navegador. |
+| RF-16 *(enmienda 2026-09-30)* | El visitante debe poder agregar al carrito, con una sola acción, cualquiera de los combos propuestos por Colibrí (RF-14) — todos sus productos, con el mismo nombre y precio mostrados en el combo —, sin perder la conversación en curso. |
+| RF-17 *(enmienda 2026-09-30, precisiones 2026-09-30b/c)* | El visitante debe poder generar una orden de compra a partir del carrito, dejando sus datos de contacto — obligatorios: nombre, al menos un medio de contacto (email y/o teléfono), dirección y localidad —, y recibir en pantalla una confirmación con el número de orden, que aclara que pago y envío se coordinan después con RenovArte e indica los canales para consultas (email de RenovArte y MD de Instagram a @renovarte_by_juli). El visitante no recibe copia de la orden por mail. El flujo no pide ni procesa medios de pago ni define/calcula envío. |
+| RF-18 *(enmienda 2026-09-30, precisiones 2026-09-30b/d)* | Cada orden generada debe llegar por mail a la casilla de RenovArte **renovartebyjuli@gmail.com**, con número de orden, fecha/hora, datos de contacto del visitante (incluidas dirección y localidad), detalle de productos (nombre, presentación, cantidad, precio unitario, subtotal) y total. El remitente se define en diseño (el más barato). Un reintento de la misma orden nunca genera un segundo mail ni un número de orden nuevo. |
+| RF-19 *(nuevo, precisiones 2026-09-30d/e)* | Además del mail (RF-18), cada orden generada debe llegar **siempre** — no solo si el mail falla — a un **canal privado de Discord de RenovArte dedicado solo a órdenes** (distinto del canal técnico de la POC de eventos), visible solo para los propietarios de RenovArte, con el mismo número de orden y el mismo contenido que el mail, datos de contacto incluidos; un reintento nunca duplica el mensaje; cada mensaje se borra automáticamente a los 60 días. Objetivo: no perder la orden si el mail cae en spam. Si solo uno de los dos canales acepta la orden, la orden igual se confirma al visitante y la falla del otro queda registrada (spec 0017, AC-25). |
 
 ## 6. Requisitos no funcionales
 
@@ -191,6 +305,11 @@ No hay, en esta fase, un rol de "cliente logueado" ni checkout.
 | RNF-07 *(enmienda 2026-09-21)* | Si el chat no está disponible, el resto del catálogo (grilla, filtro, búsqueda, ficha de producto — RF-01 a RF-04) debe seguir funcionando con normalidad. |
 | RNF-08 *(nuevo, precisión 2026-09-21)* | El runtime del chat (transporte en vivo, conexión al LLM, RAG) debe vivir exclusivamente en servicios externos a `renovarte-catalogo`; este repo se mantiene 100% estático (sin backend/DB propio en runtime) y solo actúa como cliente que consume esos servicios desde el navegador — mismo invariante de `constitution.md §II.4`, extendido explícitamente al chat. |
 | RNF-09 *(nuevo, enmienda 2026-09-21b)* | El gasto mensual de la API del LLM usado por el chat tiene un techo de **USD 20/mes**. Al alcanzar ese techo, el chat debe deshabilitarse automáticamente (sin seguir generando gasto), mientras el resto del catálogo (RF-01 a RF-04) sigue funcionando con normalidad, sin degradación — misma garantía de RNF-07. Esta es una excepción explícita y acotada al chat al invariante "$0 infraestructura" (RNF-01), aprobada por el CTO/CEO. |
+| RNF-10 *(nuevo, enmienda 2026-09-30, precisiones 2026-09-30b/c)* | El manejo de las órdenes (creación, validación contra el catálogo, anti-abuso, registro) y la orquestación del envío del mail deben vivir en un **repo nuevo propio dedicado a órdenes** (decisión CTO/CEO: manejo propio, no un servicio de terceros que lo reemplace; pensado para expandir funcionalidad a futuro), fuera de `renovarte-catalogo`. El envío del mail en sí puede delegarse a un proveedor de terceros de bajo costo, invocado desde ese repo (nunca desde el navegador) y dentro del tope de RNF-14; este repo se mantiene 100% estático y solo actúa como cliente desde el navegador — mismo invariante de `constitution.md §II.4` / RNF-08, extendido a las órdenes. El carrito en sí es estado del navegador, no backend. Nombre, stack y hosting del repo nuevo se definen en RFC. |
+| RNF-11 *(nuevo, enmienda 2026-09-30, precisión 2026-09-30d)* | Los productos y precios de una orden que llega a RenovArte deben corresponder al catálogo publicado vigente (`precio_venta`), aun si el navegador fue manipulado; y ni el mail ni el mensaje de Discord de la orden deben contener costo, margen ni precio de lista de LACA (mismo invariante que RNF-03). |
+| RNF-12 *(nuevo, enmienda 2026-09-30, reformulado 2026-09-30b, precisiones 2026-09-30d/e/f)* | Los datos de contacto del visitante no deben quedar expuestos públicamente ni commiteados en ningún repo, y solo viajan al repo de órdenes, a la casilla de RenovArte (cuyos mails de órdenes se borran a los 60 días, como política operativa de RenovArte) y al canal privado de Discord de órdenes, que solo ven los propietarios de RenovArte y cuyos mensajes se borran automáticamente a los 60 días; el registro de órdenes del repo nuevo es seudonimizado (sin datos personales) y conserva cada orden hasta 90 días; en el navegador del visitante solo puede quedar su email/teléfono, en la sesión de la pestaña y mientras esté en /carrito (para que la confirmación sobreviva a una recarga). El destinatario del mail y el canal/webhook de Discord se fijan del lado del servidor y **no pueden indicarse ni alterarse desde el navegador** (no se exige ocultar la dirección de RenovArte, que puede mostrarse como contacto para consultas); el webhook de Discord es un secreto (nunca en el navegador ni commiteado). El mecanismo de envío debe tener protección anti-abuso (límite de volumen por origen, rechazo de envíos automatizados triviales), que cubre los dos canales. |
+| RNF-13 *(nuevo, enmienda 2026-09-30)* | Si el envío de órdenes falla o no está disponible, el visitante lo ve explícitamente, no pierde su carrito y puede reintentar — nunca se confirma una orden no recibida —; el resto del catálogo (RF-01..RF-04) y el chat (RF-14) siguen funcionando con normalidad (misma garantía que RNF-07). |
+| RNF-14 *(nuevo, precisiones 2026-09-30b/c)* | El costo mensual del sistema de órdenes (repo nuevo + proveedor de envío de mail) tiene un techo de **USD 20/mes**, aprobado por el CTO/CEO — excepción acotada a esta feature al invariante "$0 infraestructura" (RNF-01 / `constitution.md §II.5`), independiente del techo de RNF-09 (no lo comparte). Al alcanzarlo: no se genera gasto adicional, el visitante ve que la orden no se envió sin perder el carrito, con canales de contacto alternativos, y el resto del sitio sigue funcionando. |
 
 ## 7. Métricas de éxito (Fase 1)
 
@@ -211,9 +330,16 @@ Al no haber compra, el éxito de esta fase es cualitativo/operativo:
 | *(2026-09-21, resuelto)* Un chat con LLM en vivo requiere algún backend/servicio con estado | Resuelto sin enmendar `constitution.md §II.4`: el runtime (transporte, LLM, RAG) vive en 2 proyectos nuevos fuera de este repo; `renovarte-catalogo` nunca aloja backend propio, solo lo consume como cliente desde el navegador (RNF-08) |
 | *(2026-09-21)* El chat podría inventar/alucinar un producto, precio o combinación que no existe en el catálogo real | AC explícito de que toda recomendación debe verificarse contra `products.json` vigente antes de mostrarse; el mecanismo concreto (RAG u otro) se define en RFC |
 | *(2026-09-21, resuelto 2026-09-21b)* Llamadas a la API de Claude no son gratis por volumen, lo que tensiona con RNF-01 ("$0 infra") | Resuelto por el CTO/CEO: techo de gasto mensual de USD 20/mes (RNF-09), con auto-deshabilitación del chat al alcanzarlo — excepción explícita y acotada al chat al invariante "$0 infra", el resto del catálogo no se ve afectado. El mecanismo concreto de medición/corte de gasto queda para la fase de RFC/diseño. |
+| *(2026-09-30)* Enviar la orden por mail requiere un componente server-side, que choca con `constitution.md §II.4` ("no runtime backend") si viviera en este repo | RNF-10: el envío vive fuera de `renovarte-catalogo` (resolución por defecto de `renovarte-parent/specs/constitution.md §I.3`); *(2026-09-30b)* resuelto por el CTO/CEO: repo nuevo propio dedicado a órdenes, forma técnica en RFC |
+| *(2026-09-30)* Un formulario público que dispara mails puede usarse para spam/abuso, y el costo del envío de mails puede romper "$0 infra" | RNF-12 (anti-abuso, destinatario fijo server-side) y RNF-14 (tope de costo de USD 20/mes aprobado por el CTO/CEO) |
+| *(2026-09-30)* Un visitante (o un script) manipula precios/productos del carrito en el navegador y la orden llega con datos falsos | RNF-11: la orden se contrasta contra el catálogo publicado vigente antes de llegar a la casilla de RenovArte |
+| *(2026-09-30)* Primera vez que el sitio recibe datos personales del visitante | RNF-12: no se publican ni commitean; aviso de uso de datos en el formulario (pregunta abierta en la spec 0017) |
+| *(2026-09-30d)* El mail de la orden cae en spam y RenovArte no se entera | RF-19: entrega **siempre** duplicada a un canal privado de Discord dedicado a órdenes, mismo número de orden, sin duplicados por reintento |
+| *(2026-09-30d)* Ley 25.326: con Discord, los datos personales del visitante quedan en un segundo servicio de terceros (además de Gmail), fuera de Argentina | *(2026-09-30e)* Borrado automático de los mensajes de Discord a los 60 días y canal visible solo para los propietarios (2FA recomendado); registro propio seudonimizado a 90 días (RNF-12); *(2026-09-30f)* mails de órdenes en Gmail borrados a los 60 días (política operativa). **Antes de producción:** texto del aviso de privacidad que mencione los canales y consulta profesional opcional sobre AAIP/transferencia internacional — spec 0017, pregunta #12 |
+| *(2026-09-30d)* Filtración del webhook de Discord (permitiría publicar mensajes falsos en el canal de órdenes) | RNF-12: webhook como secreto server-side, nunca en el navegador ni commiteado; se regenera si se filtra |
 
 ## 9. Fases futuras (fuera de este PRD, mencionadas para contexto)
-- Fase 2: carrito + checkout con Mercado Pago.
+- Fase 2: carrito + checkout con Mercado Pago. *(2026-09-30: el carrito y la orden de compra sin pago se adelantan como RF-15..RF-19; el checkout con Mercado Pago sigue siendo futuro.)*
 - Fase 3: panel de administración con UI para cargar/editar productos sin CSV manual.
 - Fase 4: multi-proveedor activo con más de una marca en simultáneo.
 
