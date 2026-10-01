@@ -56,8 +56,15 @@ export class ChatTransport {
     private readonly url: string | undefined,
     private readonly factory: WebSocketFactory,
     private readonly events: ChatTransportEvents,
-    private readonly scheduleTimeout: (fn: () => void, ms: number) => TimeoutHandle = setTimeout,
-    private readonly clearScheduledTimeout: (handle: TimeoutHandle) => void = clearTimeout,
+    // Wrapped, never the bare globals: these are invoked as
+    // `this.scheduleTimeout(...)`, and the browser's `setTimeout`/
+    // `clearTimeout` throw "Illegal invocation" when called with a `this`
+    // other than `window` (Node doesn't care, which is why unit tests with
+    // fake timers never caught it).
+    private readonly scheduleTimeout: (fn: () => void, ms: number) => TimeoutHandle = (fn, ms) =>
+      setTimeout(fn, ms),
+    private readonly clearScheduledTimeout: (handle: TimeoutHandle) => void = (handle) =>
+      clearTimeout(handle),
   ) {}
 
   /** No-op if a socket already exists (or is being retried) — connection is lazy and singleton per transport instance. */
