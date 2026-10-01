@@ -412,6 +412,10 @@ test("AC-11/progresividad: with JS permanently disabled, the FAB/home card are v
   browser,
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
+  // Without JS, Chromium ignores loading="lazy", so the home would fetch all
+  // ~384 product images from laboratoriolaca.com before "load" fires — slow
+  // enough to time out under CI parallelism. This test checks no images.
+  await context.route(/laboratoriolaca\.com/, (route) => route.abort());
   const page = await context.newPage();
   await page.goto("/");
 
