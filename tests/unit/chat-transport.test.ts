@@ -234,3 +234,47 @@ describe("ChatTransport", () => {
     expect(sockets).toHaveLength(1);
   });
 });
+
+describe("ChatTransport default timers", () => {
+  const realSetTimeout = globalThis.setTimeout;
+  const realClearTimeout = globalThis.clearTimeout;
+  afterEach(() => {
+    globalThis.setTimeout = realSetTimeout;
+    globalThis.clearTimeout = realClearTimeout;
+  });
+
+  it("calls setTimeout/clearTimeout unbound, like the browser requires (no 'Illegal invocation' on reconnect)", () => {
+    // Browser-like globals: throw when invoked with a `this` other than the
+    // global object, which Node's own timers never enforce.
+    const scheduled: Array<() => void> = [];
+    globalThis.setTimeout = function (this: unknown, fn: () => void) {
+      if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+      scheduled.push(fn);
+      return 1 as unknown as ReturnType<typeof setTimeout>;
+    } as typeof setTimeout;
+    globalThis.clearTimeout = function (this: unknown) {
+      if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+    } as typeof clearTimeout;
+
+    const sockets: FakeSocket[] = [];
+    const onReconnecting = vi.fn();
+    const transport = new ChatTransport(
+      "wss://example.com",
+      () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket;
+      },
+      { onOpen: vi.fn(), onEnvelope: vi.fn(), onReconnecting, onLocalUnavailable: vi.fn() },
+    );
+
+    transport.connect();
+    sockets[0]!.simulateClose();
+    expect(onReconnecting).toHaveBeenCalledWith(1, RECONNECT_BACKOFF_MS[0]);
+    scheduled[0]!();
+    expect(sockets).toHaveLength(2);
+
+    sockets[1]!.simulateClose();
+    expect(() => transport.close()).not.toThrow();
+  });
+});
