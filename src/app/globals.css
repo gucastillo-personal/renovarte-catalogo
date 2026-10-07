@@ -54,3 +54,20 @@ h1,
     transform: translateY(0);
   }
 }
+
+/*
+ * Carrito (spec 0017) — escala breve del contador del header al subir el
+ * número (ux.md "Header": 320ms). Se aplica con `motion-safe:` en el call
+ * site, así `prefers-reduced-motion: reduce` no anima.
+ */
+@keyframes cart-count-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
