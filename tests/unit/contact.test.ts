@@ -7,6 +7,7 @@ import {
   RENOVARTE_TELEFONO,
   mailtoConsulta,
   telefonoHref,
+  whatsappHref,
 } from "@/lib/contact";
 
 describe("contact", () => {
@@ -25,5 +26,9 @@ describe("contact", () => {
   it("expone el teléfono de RenovArte como link tel:", () => {
     expect(RENOVARTE_TELEFONO).toBe("1130579528");
     expect(telefonoHref()).toBe("tel:1130579528");
+  });
+
+  it("whatsappHref usa formato internacional argentino móvil, sin + ni espacios", () => {
+    expect(whatsappHref()).toBe("https://wa.me/5491130579528");
   });
 });
