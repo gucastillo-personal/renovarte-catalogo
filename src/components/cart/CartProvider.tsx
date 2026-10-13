@@ -85,7 +85,12 @@ export function CartProvider({
     [lines, ids],
   );
 
-  const announce = useCallback((m: string) => setMessage(m), []);
+  // Un mismo texto dos veces seguidas (p. ej. tocar "Agregar" en el máximo) no
+  // cambiaría el nodo y el lector no lo repetiría: se alterna un espacio fino.
+  const announce = useCallback(
+    (m: string) => setMessage((prev) => (prev === m ? `${m}\u00a0` : m)),
+    [],
+  );
   const requestHeadingFocus = useCallback(() => {
     headingFocus.current = true;
   }, []);
