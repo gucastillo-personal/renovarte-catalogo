@@ -4,8 +4,8 @@
  * usan igual.
  */
 
-/** Tope de unidades por línea (ux.md #D, igual que `cantidad` 1..20 del contrato). */
-export const MAX_POR_LINEA = 20;
+/** Tope de unidades por línea (ux.md #D, igual que `cantidad` 1..10 del contrato). */
+export const MAX_POR_LINEA = 10;
 
 /**
  * Una línea del carrito. Es **todo** lo que se persiste (AC-18): nunca datos

@@ -64,30 +64,30 @@ describe("agregar (AC-3, AC-4, AC-6)", () => {
 
 describe("límites de cantidad", () => {
   it("tope en MAX_POR_LINEA y devuelve topeado", () => {
-    expect(MAX_POR_LINEA).toBe(20);
+    expect(MAX_POR_LINEA).toBe(10);
     let lines: CartLine[] = [];
     for (let i = 0; i < MAX_POR_LINEA; i++) lines = addProduct(lines, crema).lines;
-    expect(lines[0]?.cantidad).toBe(20);
+    expect(lines[0]?.cantidad).toBe(10);
     const r = addProduct(lines, crema);
-    expect(r.lines[0]?.cantidad).toBe(20);
+    expect(r.lines[0]?.cantidad).toBe(10);
     expect(r.topeado).toBe(true);
   });
 
-  it("addCombo topea la línea que ya está en 20 y suma el resto", () => {
+  it("addCombo topea la línea que ya está en 10 y suma el resto", () => {
     let lines: CartLine[] = [];
     for (let i = 0; i < MAX_POR_LINEA; i++) lines = addProduct(lines, crema).lines;
     const r = addCombo(lines, [crema, suero]);
     expect(r.topeado).toBe(true);
-    expect(r.lines.find((l) => l.producto_id === "c1")?.cantidad).toBe(20);
+    expect(r.lines.find((l) => l.producto_id === "c1")?.cantidad).toBe(10);
     expect(r.lines.find((l) => l.producto_id === "s1")?.cantidad).toBe(1);
   });
 
-  it("setCantidad acota a 1..20 y no toca otras líneas", () => {
+  it("setCantidad acota a 1..10 y no toca otras líneas", () => {
     const base = addCombo([], [crema, suero]).lines;
     expect(setCantidad(base, "c1", 7)[0]?.cantidad).toBe(7);
     expect(setCantidad(base, "c1", 0)[0]?.cantidad).toBe(1);
     expect(setCantidad(base, "c1", -3)[0]?.cantidad).toBe(1);
-    expect(setCantidad(base, "c1", 99)[0]?.cantidad).toBe(20);
+    expect(setCantidad(base, "c1", 99)[0]?.cantidad).toBe(10);
     expect(setCantidad(base, "c1", Number.NaN)[0]?.cantidad).toBe(1);
     expect(setCantidad(base, "c1", 5)[1]?.cantidad).toBe(1);
     expect(setCantidad(base, "nope", 5)).toEqual(base);
@@ -200,7 +200,7 @@ describe("persistencia", () => {
         buena,
         buena,
         { ...buena, producto_id: "x1", cantidad: 0 },
-        { ...buena, producto_id: "x2", cantidad: 21 },
+        { ...buena, producto_id: "x2", cantidad: 11 },
         { ...buena, producto_id: "x3", cantidad: 1.5 },
         { ...buena, producto_id: "x4", precio_visto: -1 },
         { ...buena, producto_id: "x5", nombre: 7 },
