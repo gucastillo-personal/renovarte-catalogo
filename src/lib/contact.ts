@@ -5,12 +5,19 @@
 export const RENOVARTE_EMAIL = "renovartebyjuli@gmail.com";
 /** Teléfono de RenovArte para coordinar pago y envío (enmienda 2026-10-05). */
 export const RENOVARTE_TELEFONO = "1130579528";
+/** Mismo teléfono en formato internacional argentino móvil (54 9 + número), para wa.me. */
+export const RENOVARTE_WHATSAPP = `549${RENOVARTE_TELEFONO}`;
 export const INSTAGRAM_USER = "renovarte_by_juli";
 export const INSTAGRAM_DM_URL = `https://ig.me/m/${INSTAGRAM_USER}`;
 
 /** `tel:` para llamar a RenovArte. */
 export function telefonoHref(): string {
   return `tel:${RENOVARTE_TELEFONO}`;
+}
+
+/** `https://wa.me/` al WhatsApp de RenovArte (sin `+` ni espacios). */
+export function whatsappHref(): string {
+  return `https://wa.me/${RENOVARTE_WHATSAPP}`;
 }
 
 /** `mailto:` a RenovArte con el asunto "Consulta por orden {numero}". */
