@@ -3,8 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AddToCartButton } from "@/components/cart/AddToCartButton";
 import { OfferBadge } from "@/components/OfferBadge";
 import { ProductPrice } from "@/components/ProductPrice";
+import { toCartCatalogEntry } from "@/lib/cart/catalog-slim";
 import { slugifyCategoria } from "@/lib/category-slug";
 import { TAG_CHIP } from "@/lib/chip-styles";
 import {
@@ -90,6 +92,8 @@ export default async function ProductPage({
         </h1>
         <p className="text-sage-600">{product.presentacion}</p>
         <ProductPrice product={product} size="lg" />
+
+        <AddToCartButton product={toCartCatalogEntry(product)} />
 
         <p className="max-w-prose leading-relaxed text-sage-700">
           {product.descripcion}

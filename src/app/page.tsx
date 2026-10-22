@@ -17,7 +17,7 @@ export default function Home() {
         <ChatHomeInviteCard />
       </div>
 
-      <div id="catalogo" className="flex scroll-mt-4 flex-col gap-6">
+      <div id="catalogo" className="flex scroll-mt-20 flex-col gap-6">
         <h2 className="font-display text-2xl font-semibold tracking-tight text-sage-800">
           Catálogo
         </h2>
