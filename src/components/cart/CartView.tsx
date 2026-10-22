@@ -12,6 +12,7 @@ import { CartSummary } from "@/components/cart/CartSummary";
 import { CartUndoRow } from "@/components/cart/CartUndoRow";
 import { FOCUS_ATTR, type CartFocusKey } from "@/components/cart/focus-keys";
 import { useChatWidget } from "@/components/chat/ChatProvider";
+import { OrderForm } from "@/components/orders/OrderForm";
 import type { CartCatalog } from "@/lib/cart/catalog-slim";
 import {
   ANUNCIO_VACIADO,
@@ -62,6 +63,8 @@ export interface CartViewContentProps {
   confirmingClear: boolean;
   actions: CartViewActions;
   headingRef?: RefObject<HTMLHeadingElement | null>;
+  /** "Tus datos" (`OrderForm`): va dentro de la caja de resumen cuando hay productos disponibles. */
+  form?: React.ReactNode;
 }
 
 const LINK_BTN =
@@ -69,8 +72,8 @@ const LINK_BTN =
 
 /**
  * Contenido de `/carrito` (ux.md "Página /carrito"): presentación pura,
- * testeable con `renderToStaticMarkup`. En esta tarea (F8/F9) no incluye el
- * formulario ni el envío (F10 en adelante).
+ * testeable con `renderToStaticMarkup`. El formulario entra por `form` (F12);
+ * el envío real llega en F13.
  */
 export function CartViewContent({
   ready,
@@ -80,6 +83,7 @@ export function CartViewContent({
   confirmingClear,
   actions,
   headingRef,
+  form,
 }: CartViewContentProps) {
   const unidades = unidadesDisponibles(lines);
 
@@ -159,7 +163,7 @@ export function CartViewContent({
         // Sticky solo con alto de ventana suficiente (ux.md): si no, fluye normal.
         <div className="md:self-start md:[@media(min-height:760px)]:sticky md:[@media(min-height:760px)]:top-[88px]">
           <CartSummary unidades={unidades} total={total(lines)}>
-            {!hayDisponibles && <p className="text-sage-700">{SIN_DISPONIBLES}</p>}
+            {hayDisponibles ? form : <p className="text-sage-700">{SIN_DISPONIBLES}</p>}
           </CartSummary>
         </div>
       )}
@@ -267,6 +271,7 @@ export function CartView({ catalogo }: { catalogo: CartCatalog }) {
         confirmingClear={confirmingClear}
         actions={actions}
         headingRef={headingRef}
+        form={<OrderForm />}
       />
     </div>
   );

@@ -126,9 +126,11 @@ describe("CartView — con productos", () => {
     expect(html).toMatch(/<a[^>]*href="\/"[^>]*>← Seguir comprando<\/a>/);
   });
 
-  it("todavía no hay formulario ni envío (F10 en adelante)", () => {
+  it("el formulario entra por `form`, dentro de la caja de resumen, después del total", () => {
     expect(html).not.toContain("<form");
-    expect(html).not.toContain("Enviar orden");
+    const conForm = render({ lines, form: <form data-testid="f">FORM</form> });
+    expect(conForm.indexOf("Total (3 productos)")).toBeLessThan(conForm.indexOf("FORM"));
+    expect(conForm.indexOf("FORM")).toBeLessThan(conForm.indexOf("</section>"));
   });
 
   it("sin aviso de revalidación si no hubo cambios", () => {
@@ -187,6 +189,7 @@ describe("CartView — solo líneas no disponibles", () => {
   });
 
   it("no hay <form> ni botón de enviar (AC-8)", () => {
+    expect(render({ lines: [line("x", { no_disponible: true })], form: <form>FORM</form> })).not.toContain("FORM");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("Enviar orden");
   });

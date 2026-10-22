@@ -222,7 +222,7 @@ test.describe("F8 — página /carrito", () => {
     await expect(cartList(page)).toContainText(A.nombre);
   });
 
-  test("con productos: líneas, total, aclaración de AC-12 y sin formulario todavía", async ({ page }) => {
+  test("con productos: líneas, total, aclaración de AC-12 y el formulario dentro del resumen", async ({ page }) => {
     await seed(page, [
       { p: A, cantidad: 2 },
       { p: B, cantidad: 1 },
@@ -237,7 +237,7 @@ test.describe("F8 — página /carrito", () => {
     await expect(page.getByRole("region", { name: "Resumen del carrito" })).toContainText(formatARS(total));
     await expect(page.getByText("No se cobra nada en este paso.")).toBeVisible();
     await expect(page.getByRole("link", { name: A.nombre })).toHaveAttribute("href", `/producto/${A.id}`);
-    await expect(page.locator("form")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Resumen del carrito" }).locator("form")).toHaveCount(1);
   });
 
   test("AC-15: un precio viejo se actualiza al vigente con aviso y nota", async ({ page }) => {
@@ -534,6 +534,186 @@ test.describe("F9 — edición del carrito (AC-3)", () => {
     await uno.getByRole("button", { name: "Vaciar carrito" }).click();
     await uno.getByRole("button", { name: "Sí, vaciar" }).click();
     await expect(headerCart(dos)).toHaveAccessibleName("Carrito, vacío");
+  });
+});
+
+test.describe("F12 — formulario «Tus datos» (AC-9, AC-28)", () => {
+  const DRAFT_KEY = "renovarte:contacto-borrador:v1";
+  const NOMBRE_VACIO = "Dejanos tu nombre y apellido para saber a quién llamar.";
+  const NOMBRE_INVALIDO = "Revisá el nombre: escribilo con letras y hasta 80 caracteres (ej.: Ana Pérez).";
+  const TELEFONO_VACIO = "Dejanos un teléfono para contactarte.";
+  const TELEFONO_INVALIDO =
+    "Revisá el teléfono: escribilo con código de área, solo números (ej.: 11 5555 5555).";
+
+  const nombre = (page: Page) => page.getByLabel("Nombre y apellido", { exact: true });
+  const telefono = (page: Page) => page.getByLabel("Teléfono", { exact: true });
+  const enviar = (page: Page) => page.getByRole("button", { name: "Enviar orden" });
+  const resumen = (page: Page) => page.getByRole("group", { name: "Revisá estos datos antes de enviar:" });
+
+  /** Cuenta los POST que salen del navegador (en estas tareas no tiene que salir ninguno). */
+  function countPosts(page: Page): () => number {
+    let n = 0;
+    page.on("request", (r) => {
+      if (r.method() === "POST") n += 1;
+    });
+    return () => n;
+  }
+
+  async function open(page: Page) {
+    await seed(page, [{ p: A, cantidad: 1 }]);
+    await page.goto("/carrito");
+    await expect(nombre(page)).toBeVisible();
+  }
+
+  test("el formulario está dentro del resumen, con los dos campos en orden y sin placeholder", async ({ page }) => {
+    await open(page);
+    await expect(page.getByRole("heading", { level: 2, name: "Tus datos" })).toBeVisible();
+    // Los dos campos, en este orden; el honeypot (`sitio_web`) queda fuera de pantalla.
+    const campos = page.locator("form input:not([name='sitio_web'])");
+    await expect(campos).toHaveCount(2);
+    await expect(campos.first()).toHaveAttribute("name", "nombre");
+    await expect(campos.last()).toHaveAttribute("name", "telefono");
+    await expect(page.locator("form input[name='sitio_web']")).toHaveAttribute("tabindex", "-1");
+    expect(await page.locator("form input[name='sitio_web']").evaluate((el) => el.getBoundingClientRect().right)).toBeLessThan(0);
+    await expect(page.locator("form [placeholder]")).toHaveCount(0);
+    await expect(page.getByText("Para saber a quién llamar. Ej.: Ana Pérez")).toBeVisible();
+    await expect(page.getByText("Con código de área. Ej.: 11 5555 5555")).toBeVisible();
+    await expect(nombre(page)).toHaveAttribute("maxlength", "80");
+  });
+
+  test("enviar vacío → resumen con dos ítems, enfocado, y cero POST", async ({ page }) => {
+    await open(page);
+    const posts = countPosts(page);
+    await enviar(page).click();
+
+    await expect(resumen(page)).toBeFocused();
+    const items = resumen(page).getByRole("button");
+    await expect(items).toHaveText([NOMBRE_VACIO, TELEFONO_VACIO]);
+    await expect(nombre(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(telefono(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("[id$='-nombre-error']")).toHaveText(NOMBRE_VACIO); // además del ítem del resumen
+    expect(posts()).toBe(0);
+  });
+
+  test("solo el nombre vacío → un ítem; cada ítem enfoca su campo", async ({ page }) => {
+    await open(page);
+    const posts = countPosts(page);
+    await telefono(page).fill("11 5555 5555");
+    await enviar(page).click();
+
+    await expect(resumen(page)).toBeFocused();
+    await expect(resumen(page).getByRole("button")).toHaveText([NOMBRE_VACIO]);
+    await resumen(page).getByRole("button", { name: NOMBRE_VACIO }).click();
+    await expect(nombre(page)).toBeFocused();
+
+    await nombre(page).fill("");
+    await telefono(page).fill("");
+    await enviar(page).click();
+    await resumen(page).getByRole("button", { name: TELEFONO_VACIO }).click();
+    await expect(telefono(page)).toBeFocused();
+    expect(posts()).toBe(0);
+  });
+
+  test("nombre de 81 caracteres (salteando maxlength) → «Revisá el nombre…» y cero POST", async ({ page }) => {
+    await open(page);
+    const posts = countPosts(page);
+    await nombre(page).evaluate((el) => el.removeAttribute("maxlength"));
+    await nombre(page).fill("a".repeat(81));
+    await telefono(page).fill("11 5555 5555");
+    await enviar(page).click();
+
+    await expect(resumen(page).getByRole("button")).toHaveText([NOMBRE_INVALIDO]);
+    await expect(resumen(page)).toBeFocused();
+    expect(posts()).toBe(0);
+  });
+
+  test("teléfono inválido → «Revisá el teléfono…»", async ({ page }) => {
+    await open(page);
+    await nombre(page).fill("Ana Pérez");
+    await telefono(page).fill("123");
+    await enviar(page).click();
+    await expect(resumen(page).getByRole("button")).toHaveText([TELEFONO_INVALIDO]);
+  });
+
+  test('"Madonna" y "Ana Pérez" pasan la validación', async ({ page }) => {
+    await open(page);
+    const posts = countPosts(page);
+    for (const n of ["Madonna", "Ana Pérez"]) {
+      await nombre(page).fill(n);
+      await telefono(page).fill("11 5555 5555");
+      await enviar(page).click();
+      await expect(resumen(page)).toHaveCount(0);
+      await expect(nombre(page)).not.toHaveAttribute("aria-invalid", "true");
+    }
+    expect(posts()).toBe(0); // el envío real llega en F13
+  });
+
+  test("corregir un campo al perder el foco borra su error", async ({ page }) => {
+    await open(page);
+    await enviar(page).click();
+    await expect(resumen(page).getByRole("button")).toHaveCount(2);
+
+    await nombre(page).fill("Ana Pérez");
+    await telefono(page).focus(); // el nombre pierde el foco
+    await expect(nombre(page)).not.toHaveAttribute("aria-invalid", "true");
+    await expect(resumen(page).getByRole("button")).toHaveText([TELEFONO_VACIO]);
+
+    await telefono(page).fill("11 5555 5555");
+    await nombre(page).focus();
+    await expect(resumen(page)).toHaveCount(0);
+  });
+
+  test("después del primer intento, un campo que se rompe se marca al salir de él", async ({ page }) => {
+    await open(page);
+    await nombre(page).fill("Ana Pérez");
+    await telefono(page).fill("11 5555 5555");
+    await enviar(page).click(); // pasa
+    await telefono(page).fill("12");
+    await nombre(page).focus();
+    await expect(telefono(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("[id$='-telefono-error']")).toHaveText(TELEFONO_INVALIDO);
+  });
+
+  test("Enter en el nombre pasa al teléfono sin enviar; Enter en el teléfono envía", async ({ page }) => {
+    await open(page);
+    await nombre(page).fill("Ana Pérez");
+    await nombre(page).press("Enter");
+    await expect(telefono(page)).toBeFocused();
+    await expect(resumen(page)).toHaveCount(0);
+
+    await telefono(page).press("Enter");
+    await expect(resumen(page).getByRole("button")).toHaveText([TELEFONO_VACIO]);
+  });
+
+  test("AC-28: nombre y teléfono tipeados vuelven tras recargar; localStorage no los tiene", async ({ page }) => {
+    await open(page);
+    await nombre(page).fill("Canario Nombre");
+    await telefono(page).fill("1122334455");
+    await enviar(page).click(); // guarda el borrador
+
+    await page.reload();
+    await expect(nombre(page)).toHaveValue("Canario Nombre");
+    await expect(telefono(page)).toHaveValue("1122334455");
+
+    const { ls, ss } = await page.evaluate((k) => ({
+      ls: JSON.stringify({ ...localStorage }),
+      ss: sessionStorage.getItem(k),
+    }), DRAFT_KEY);
+    expect(ls).not.toContain("Canario");
+    expect(ls).not.toContain("1122334455");
+    expect(Object.keys(JSON.parse(ss!)).sort()).toEqual(["nombre", "telefono"]);
+  });
+
+  test("AC-28: se guarda al salir del campo, no por tecla", async ({ page }) => {
+    await open(page);
+    await nombre(page).focus();
+    await page.keyboard.type("Ana");
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), DRAFT_KEY)).toBeNull();
+    await telefono(page).focus();
+    expect(JSON.parse((await page.evaluate((k) => sessionStorage.getItem(k), DRAFT_KEY))!)).toEqual({
+      nombre: "Ana",
+      telefono: "",
+    });
   });
 });
 
