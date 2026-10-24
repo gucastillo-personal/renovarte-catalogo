@@ -207,3 +207,29 @@ describe("FormErrorSummary", () => {
     ]);
   });
 });
+
+describe("OrderForm — enviando (F13, ux.md 'Enviar la orden')", () => {
+  const sending = render(<OrderForm storage={null} enviando />);
+
+  it("nombre y teléfono readonly, botón 'Enviando orden…' con aria-disabled y aviso de no cerrar", () => {
+    const ins = [...sending.matchAll(/<input[^>]*>/g)].map((m) => m[0]);
+    expect(ins.find((i) => i.includes('name="nombre"'))).toMatch(/\sreadonly=""/);
+    expect(ins.find((i) => i.includes('name="telefono"'))).toMatch(/\sreadonly=""/);
+    expect(sending).toMatch(/<button[^>]*aria-disabled="true"[^>]*>Enviando orden…<\/button>/);
+    expect(sending).toContain("Estamos enviando tu orden a RenovArte. No cierres esta página.");
+  });
+
+  it("sin enviar: inputs editables y botón 'Enviar orden'", () => {
+    expect(html).not.toMatch(/\sreadonly=""/);
+    expect(html).toContain(">Enviar orden</button>");
+    expect(html).not.toContain("aria-disabled");
+  });
+
+  it("el banner de falla va arriba del botón y no se muestra mientras se envía", () => {
+    const f = render(<OrderForm storage={null} banner={{ variant: "falla", detalle: "x" }} />);
+    expect(f.indexOf("Reintentar envío")).toBeGreaterThan(-1);
+    expect(f.indexOf("Reintentar envío")).toBeLessThan(f.indexOf(">Enviar orden</button>"));
+    const g = render(<OrderForm storage={null} enviando banner={{ variant: "falla", detalle: "x" }} />);
+    expect(g).not.toContain("Reintentar envío");
+  });
+});

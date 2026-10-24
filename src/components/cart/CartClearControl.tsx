@@ -8,6 +8,8 @@ export interface CartClearControlProps {
   onAsk(): void;
   onCancel(): void;
   onConfirm(): void;
+  /** Enviando la orden. */
+  disabled?: boolean;
 }
 
 /**
@@ -15,14 +17,15 @@ export interface CartClearControlProps {
  * lugar por la confirmación (sin `confirm()` nativo). El foco lo mueve
  * `CartView`: a "Cancelar" (la opción segura) al preguntar.
  */
-export function CartClearControl({ confirming, onAsk, onCancel, onConfirm }: CartClearControlProps) {
+export function CartClearControl({ confirming, onAsk, onCancel, onConfirm, disabled = false }: CartClearControlProps) {
   if (!confirming) {
     return (
       <button
         type="button"
         onClick={onAsk}
+        disabled={disabled}
         {...{ [FOCUS_ATTR]: "clear" }}
-        className={`${TEXT_BTN} text-sage-700 hover:text-sage-900`}
+        className={`${TEXT_BTN} text-sage-700 hover:text-sage-900 disabled:cursor-not-allowed disabled:opacity-50`}
       >
         Vaciar carrito
       </button>

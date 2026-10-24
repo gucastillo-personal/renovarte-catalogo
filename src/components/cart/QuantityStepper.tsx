@@ -10,6 +10,8 @@ export interface QuantityStepperProps {
   cantidad: number;
   onMinus(): void;
   onPlus(): void;
+  /** Enviando la orden: lo que se ve es lo que se envía (ux.md "Enviar la orden"). */
+  disabled?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export function QuantityStepper({
   cantidad,
   onMinus,
   onPlus,
+  disabled = false,
 }: QuantityStepperProps) {
   const menos: CartFocusKey = `menos:${productoId}`;
   const mas: CartFocusKey = `mas:${productoId}`;
@@ -35,7 +38,7 @@ export function QuantityStepper({
       <button
         type="button"
         aria-label="Restar una unidad"
-        disabled={cantidad <= 1}
+        disabled={disabled || cantidad <= 1}
         onClick={onMinus}
         {...{ [FOCUS_ATTR]: menos }}
         className={`${BTN} rounded-l-lg`}
@@ -49,7 +52,7 @@ export function QuantityStepper({
       <button
         type="button"
         aria-label="Sumar una unidad"
-        disabled={cantidad >= MAX_POR_LINEA}
+        disabled={disabled || cantidad >= MAX_POR_LINEA}
         onClick={onPlus}
         {...{ [FOCUS_ATTR]: mas }}
         className={`${BTN} rounded-r-lg`}

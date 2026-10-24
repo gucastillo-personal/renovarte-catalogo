@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent,
 
 import { AlertIcon } from "@/components/orders/AlertIcon";
 import { FormErrorSummary } from "@/components/orders/FormErrorSummary";
+import { OrderSendBanner } from "@/components/orders/OrderSendBanner";
 import {
   browserSessionStorage,
   readDraft,
@@ -37,8 +38,19 @@ export interface OrderFormSubmit {
 }
 
 export interface OrderFormProps {
-  /** Se llama solo con datos que pasaron la validación. El envío real llega en F13. */
+  /** Se llama solo con datos que pasaron la validación (el envío real lo hace `CartView`). */
   onValidSubmit?(data: OrderFormSubmit): void;
+  /**
+   * Enviando (ux.md "Enviar la orden", punto 2): botón "Enviando orden…" con
+   * `aria-disabled`, nombre y teléfono `readonly`, y el aviso de no cerrar la
+   * página. Un segundo envío no hace nada.
+   */
+  enviando?: boolean;
+  /**
+   * Banner de falla / tope arriba del botón "Enviar orden". "Reintentar envío"
+   * valida y envía de nuevo con lo que hay en los campos.
+   */
+  banner?: { variant: "falla" | "tope"; detalle: string };
   /**
    * Errores de un `invalida` del servidor ya mapeados a campos
    * (`mapServerErrors`). Cada vez que llega un arreglo nuevo con ítems, se
@@ -122,6 +134,8 @@ function Campo({ id, label, hint, hintId, errorId, error, children }: CampoProps
  */
 export function OrderForm({
   onValidSubmit,
+  enviando = false,
+  banner,
   serverErrors,
   generalError,
   storage = browserSessionStorage(),
@@ -189,8 +203,8 @@ export function OrderForm({
   const focusCampo = (campo: CampoContacto) =>
     (campo === "nombre" ? nombreRef : telefonoRef).current?.focus();
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const submitNow = () => {
+    if (enviando) return;
     writeDraft(storage, values);
     const fallos = validateContact(values);
     setIntentado(true);
@@ -204,6 +218,11 @@ export function OrderForm({
       telefono: normalizeTelefono(values.telefono),
       honeypot: honeypotRef.current?.value ?? "",
     });
+  };
+
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    submitNow();
   };
 
   // Enter en el nombre pasa al teléfono (no envía); Enter en el teléfono envía.
@@ -247,6 +266,7 @@ export function OrderForm({
             spellCheck={false}
             enterKeyHint="next"
             maxLength={80}
+            readOnly={enviando}
             value={values.nombre}
             onChange={(e) => onChange("nombre", e.target.value)}
             onBlur={(e) => onBlur("nombre", e.target.value)}
@@ -272,6 +292,7 @@ export function OrderForm({
             autoComplete="tel"
             inputMode="tel"
             enterKeyHint="done"
+            readOnly={enviando}
             value={values.telefono}
             onChange={(e) => onChange("telefono", e.target.value)}
             onBlur={(e) => onBlur("telefono", e.target.value)}
@@ -287,12 +308,22 @@ export function OrderForm({
         </label>
       </div>
 
+      {!enviando && banner && (
+        <OrderSendBanner variant={banner.variant} detalle={banner.detalle} onRetry={submitNow} />
+      )}
+
       <button
         type="submit"
+        aria-disabled={enviando || undefined}
         className="w-full rounded-lg bg-sage-500 px-5 py-3 font-medium text-beige-50 transition-colors hover:bg-sage-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500"
       >
-        Enviar orden
+        {enviando ? "Enviando orden…" : "Enviar orden"}
       </button>
+      {enviando && (
+        <p className="text-sm text-sage-700">
+          Estamos enviando tu orden a RenovArte. No cierres esta página.
+        </p>
+      )}
     </form>
   );
 }

@@ -5,6 +5,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,6 +14,8 @@ import {
 
 import { isDisponible, unidadesDisponibles, type CartLine } from "@/lib/cart/model";
 import { createCartStore, type CartStore } from "@/lib/cart/store";
+import { clearOrderSession } from "@/lib/orders/confirmation-store";
+import { browserSessionStorage } from "@/lib/orders/contact-draft";
 
 export interface CartContextValue {
   /** Vacío en el servidor y en el primer render del cliente (sin mismatch de hidratación). */
@@ -84,6 +87,15 @@ export function CartProvider({
     () => unidadesDisponibles(lines.filter((l) => isDisponible(l) && ids.has(l.producto_id))),
     [lines, ids],
   );
+
+  // AC-18 / AC-28 (plan.md decisión 9): nombre y teléfono —borrador, confirmación y key en
+  // curso— viven en `sessionStorage` solo mientras la ruta es `/carrito`. Se borran al
+  // navegar y al montar (carga completa) en cualquier otra ruta. El doble montaje de
+  // StrictMode en `/carrito` no borra nada.
+  useEffect(() => {
+    if (pathname === null) return;
+    if (pathname.replace(/\/+$/, "") !== "/carrito") clearOrderSession(browserSessionStorage());
+  }, [pathname]);
 
   // Un mismo texto dos veces seguidas (p. ej. tocar "Agregar" en el máximo) no
   // cambiaría el nodo y el lector no lo repetiría: se alterna un espacio fino.

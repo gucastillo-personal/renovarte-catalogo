@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { flushSync } from "react-dom";
 
 import { CartClearControl } from "@/components/cart/CartClearControl";
 import { CartEmpty } from "@/components/cart/CartEmpty";
@@ -12,10 +13,14 @@ import { CartSummary } from "@/components/cart/CartSummary";
 import { CartUndoRow } from "@/components/cart/CartUndoRow";
 import { FOCUS_ATTR, type CartFocusKey } from "@/components/cart/focus-keys";
 import { useChatWidget } from "@/components/chat/ChatProvider";
-import { OrderForm } from "@/components/orders/OrderForm";
+import { OrderConfirmation } from "@/components/orders/OrderConfirmation";
+import { OrderForm, type OrderFormSubmit } from "@/components/orders/OrderForm";
+import { OrderSendBanner } from "@/components/orders/OrderSendBanner";
 import type { CartCatalog } from "@/lib/cart/catalog-slim";
 import {
+  ANUNCIO_ENVIANDO,
   ANUNCIO_VACIADO,
+  AVISO_PRECIOS_ACTUALIZADOS,
   AVISO_REVALIDACION,
   SIN_DISPONIBLES,
   anuncioCantidad,
@@ -34,7 +39,16 @@ import {
   unidadesDisponibles,
   type CartLine,
 } from "@/lib/cart/model";
-import { revalidateCart, type PriceNote } from "@/lib/cart/revalidate";
+import { applyRechazoCatalogo, revalidateCart, type PriceNote } from "@/lib/cart/revalidate";
+import { createCheckout, INITIAL_STATE } from "@/lib/orders/checkout";
+import { defaultPorts, fetchEstado } from "@/lib/orders/client";
+import {
+  readConfirmation,
+  writeConfirmation,
+  type Confirmation,
+} from "@/lib/orders/confirmation-store";
+import { browserSessionStorage, clearDraft } from "@/lib/orders/contact-draft";
+import { orderText } from "@/lib/orders/order-text";
 import { useMounted } from "@/lib/use-mounted";
 
 export interface UndoState {
@@ -65,6 +79,11 @@ export interface CartViewContentProps {
   headingRef?: RefObject<HTMLHeadingElement | null>;
   /** "Tus datos" (`OrderForm`): va dentro de la caja de resumen cuando hay productos disponibles. */
   form?: React.ReactNode;
+  /** Enviando la orden: stepper, "Quitar", "Deshacer" y "Vaciar" deshabilitados. */
+  sending?: boolean;
+  /** Tras un 409 (AC-15): el aviso de arriba es el de "precios actualizados" y recibe el foco. */
+  rechazo?: boolean;
+  avisoRef?: RefObject<HTMLDivElement | null>;
 }
 
 const LINK_BTN =
@@ -84,6 +103,9 @@ export function CartViewContent({
   actions,
   headingRef,
   form,
+  sending = false,
+  rechazo = false,
+  avisoRef,
 }: CartViewContentProps) {
   const unidades = unidadesDisponibles(lines);
 
@@ -123,13 +145,19 @@ export function CartViewContent({
       onMinus={() => actions.onMinus(line.producto_id)}
       onPlus={() => actions.onPlus(line.producto_id)}
       onRemove={() => actions.onRemove(line.producto_id)}
+      disabled={sending}
     />
   ));
   if (undo) {
     rows.splice(
       Math.min(undo.index, rows.length),
       0,
-      <CartUndoRow key={`undo-${undo.line.producto_id}`} nombre={undo.line.nombre} onUndo={actions.onUndo} />,
+      <CartUndoRow
+        key={`undo-${undo.line.producto_id}`}
+        nombre={undo.line.nombre}
+        onUndo={actions.onUndo}
+        disabled={sending}
+      />,
     );
   }
 
@@ -139,7 +167,11 @@ export function CartViewContent({
     <div className="grid gap-8 md:grid-cols-[1fr_380px] md:gap-10">
       <div className="flex flex-col gap-6">
         {heading}
-        {avisos.length > 0 && <CartNotice title={AVISO_REVALIDACION} items={avisos} />}
+        {rechazo ? (
+          <CartNotice ref={avisoRef} focusable title={AVISO_PRECIOS_ACTUALIZADOS} items={avisos} />
+        ) : (
+          avisos.length > 0 && <CartNotice title={AVISO_REVALIDACION} items={avisos} />
+        )}
         <ul aria-label="Productos en tu carrito" className="flex flex-col border-t border-beige-200">
           {rows}
         </ul>
@@ -152,6 +184,7 @@ export function CartViewContent({
               onAsk={actions.onAskClear}
               onCancel={actions.onCancelClear}
               onConfirm={actions.onConfirmClear}
+              disabled={sending}
             />
             <Link href="/" className={`self-start ${LINK_BTN}`}>
               ← Seguir comprando
@@ -183,6 +216,24 @@ export function CartView({ catalogo }: { catalogo: CartCatalog }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const pendingFocus = useRef<CartFocusKey | null>(null);
   const revalidated = useRef(false);
+  const avisoRef = useRef<HTMLDivElement>(null);
+  const [focoAviso, setFocoAviso] = useState(0);
+  const [ports] = useState(() => defaultPorts());
+  const [checkout] = useState(() =>
+    createCheckout({
+      ports,
+      randomUUID: () => crypto.randomUUID(),
+      storage: browserSessionStorage(),
+    }),
+  );
+  const envio = useSyncExternalStore(checkout.subscribe, checkout.getState, () => INITIAL_STATE);
+  // Solo se ve una vez montado (`ready`): leerlo acá no produce mismatch de hidratación.
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(() =>
+    readConfirmation(browserSessionStorage()),
+  );
+  // `GET /v1/estado` al montar devolvió `tope_alcanzado` (ux.md "tope avisado al entrar").
+  const [topeEntrada, setTopeEntrada] = useState(false);
+  const estadoPedido = useRef(false);
 
   // AC-15: cada vez que se abre `/carrito`, el carrito se contrasta con el catálogo vigente.
   useEffect(() => {
@@ -197,6 +248,29 @@ export function CartView({ catalogo }: { catalogo: CartCatalog }) {
     if (consumeHeadingFocus()) pendingFocus.current = "heading";
     setNotas(found);
   }, [catalogo, update, consumeHeadingFocus]);
+
+  // F14: al montar con líneas disponibles, se pide el estado: token para el envío o tope avisado.
+  // `no_disponible` y los errores no cambian nada visible (no bloquean, RFC §3.1).
+  const hayDisponibles = unidadesDisponibles(lines) > 0;
+  const ready = mounted && notas !== null;
+  useEffect(() => {
+    if (!ready || confirmation || !hayDisponibles || estadoPedido.current) return;
+    estadoPedido.current = true;
+    void fetchEstado(ports).then((estado) => {
+      if (estado.kind === "disponible") {
+        if (checkout.getState().status !== "enviando") {
+          checkout.adoptToken(estado.form_token, estado.emitidoEn);
+        }
+      } else if (estado.kind === "tope_alcanzado") {
+        setTopeEntrada(true);
+      }
+    });
+  }, [ready, confirmation, hayDisponibles, ports, checkout]);
+
+  // Tras un 409 el foco va al aviso de "precios actualizados" (ux.md).
+  useEffect(() => {
+    if (focoAviso > 0) avisoRef.current?.focus();
+  }, [focoAviso]);
 
   // El foco nunca queda en `body`: el botón que lo tenía pudo deshabilitarse o desmontarse.
   useEffect(() => {
@@ -224,6 +298,62 @@ export function CartView({ catalogo }: { catalogo: CartCatalog }) {
     if (delta < 0 && next <= 1) pendingFocus.current = `mas:${productoId}`;
     announce(anuncioCantidad(line.nombre, next, total(after)));
   };
+
+  const sending = envio.status === "enviando";
+
+  const sendOrder = async (data: OrderFormSubmit) => {
+    announce(ANUNCIO_ENVIANDO);
+    const enviadas = lines.filter(isDisponible);
+    const resultado = await checkout.submit({
+      lines,
+      nombre: data.nombre,
+      telefono: data.telefono,
+      honeypot: data.honeypot,
+    });
+    if (!resultado) return; // Segundo toque durante el envío: sin efecto (AC-24).
+    if (resultado.status === "confirmada") {
+      const conf: Confirmation = {
+        numero_orden: resultado.numero_orden,
+        lineas: enviadas.map((l) => ({
+          nombre: l.nombre,
+          presentacion: l.presentacion,
+          cantidad: l.cantidad,
+          precio: l.precio_visto,
+        })),
+        total: total(enviadas),
+        // La respuesta no trae el nombre: es el mismo valor normalizado que se envió.
+        nombre: data.nombre,
+        telefono: data.telefono,
+      };
+      const storage = browserSessionStorage();
+      writeConfirmation(storage, conf);
+      clearDraft(storage);
+      // Primero la confirmación, así el carrito vacío nunca se ve un instante.
+      flushSync(() => setConfirmation(conf));
+      update(() => clear());
+      setUndo(null);
+    } else if (resultado.status === "rechazada_por_catalogo") {
+      let nuevas: PriceNote[] = [];
+      update((current) => {
+        const r = applyRechazoCatalogo(current, {
+          v: 1,
+          resultado: "rechazada_por_catalogo",
+          lineas: resultado.lineas,
+          total_vigente: resultado.total_vigente,
+        });
+        nuevas = r.notas;
+        return r.lines;
+      });
+      setNotas((prev) => [
+        ...(prev ?? []).filter((n) => !nuevas.some((m) => m.producto_id === n.producto_id)),
+        ...nuevas,
+      ]);
+      setUndo(null);
+      setFocoAviso((n) => n + 1);
+    }
+  };
+
+  const detalle = orderText(lines);
 
   const actions: CartViewActions = {
     onMinus: (id) => change(id, -1),
@@ -261,17 +391,50 @@ export function CartView({ catalogo }: { catalogo: CartCatalog }) {
     onAskColibri: (trigger) => openChat(trigger),
   };
 
+  if (ready && confirmation) {
+    return (
+      <div ref={rootRef}>
+        <OrderConfirmation confirmation={confirmation} />
+      </div>
+    );
+  }
+
+  const form = topeEntrada ? (
+    <OrderSendBanner variant="tope-entrada" detalle={detalle} />
+  ) : (
+    <OrderForm
+      onValidSubmit={(data) => void sendOrder(data)}
+      enviando={sending}
+      serverErrors={envio.status === "invalida" && !envio.general ? envio.errores : undefined}
+      generalError={
+        envio.status === "invalida" && envio.general ? (
+          <OrderSendBanner variant="general" detalle={detalle} />
+        ) : undefined
+      }
+      banner={
+        envio.status === "fallida"
+          ? { variant: "falla", detalle }
+          : envio.status === "tope"
+            ? { variant: "tope", detalle }
+            : undefined
+      }
+    />
+  );
+
   return (
     <div ref={rootRef}>
       <CartViewContent
-        ready={mounted && notas !== null}
+        ready={ready}
         lines={lines}
         notas={notas ?? []}
         undo={undo}
         confirmingClear={confirmingClear}
         actions={actions}
         headingRef={headingRef}
-        form={<OrderForm />}
+        form={form}
+        sending={sending}
+        rechazo={envio.status === "rechazada_por_catalogo"}
+        avisoRef={avisoRef}
       />
     </div>
   );

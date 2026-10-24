@@ -15,6 +15,8 @@ export interface CartLineItemProps {
   onMinus(): void;
   onPlus(): void;
   onRemove(): void;
+  /** Enviando la orden: stepper y "Quitar" deshabilitados. */
+  disabled?: boolean;
 }
 
 /** Miniatura decorativa (`alt=""`): el nombre está al lado. */
@@ -38,15 +40,16 @@ function Thumb({ line, faded }: { line: CartLine; faded: boolean }) {
  * "ya no está en el catálogo" (AC-15): atenuada, sin precio, sin stepper y con
  * solo la acción "Quitar".
  */
-export function CartLineItem({ line, nota, onMinus, onPlus, onRemove }: CartLineItemProps) {
+export function CartLineItem({ line, nota, onMinus, onPlus, onRemove, disabled = false }: CartLineItemProps) {
   const disponible = line.no_disponible !== true;
   const key: CartFocusKey = `quitar:${line.producto_id}`;
   const quitar = (
     <button
       type="button"
       onClick={onRemove}
+      disabled={disabled}
       {...{ [FOCUS_ATTR]: key }}
-      className="rounded text-sm text-sage-700 underline underline-offset-4 hover:text-sage-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500"
+      className="rounded text-sm text-sage-700 underline underline-offset-4 hover:text-sage-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500 disabled:cursor-not-allowed disabled:opacity-50"
     >
       Quitar<span className="sr-only"> {line.nombre}</span>
     </button>
@@ -87,6 +90,7 @@ export function CartLineItem({ line, nota, onMinus, onPlus, onRemove }: CartLine
             cantidad={line.cantidad}
             onMinus={onMinus}
             onPlus={onPlus}
+            disabled={disabled}
           />
           {quitar}
           <span className="ml-auto font-semibold tabular-nums text-sage-900">

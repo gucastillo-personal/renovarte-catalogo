@@ -68,3 +68,10 @@ export function itemsAvisoRevalidacion(precios: number, noDisponibles: number): 
 /** En lugar del formulario cuando todas las líneas son no disponibles (ux.md "Carrito vacío"). */
 export const SIN_DISPONIBLES =
   "No hay productos disponibles para generar una orden. Quitá los que ya no están y agregá otros desde el catálogo.";
+
+/** Anuncio al empezar el envío (ux.md "Enviar la orden", punto 2). */
+export const ANUNCIO_ENVIANDO = "Enviando tu orden…";
+
+/** Aviso tras un 409 `rechazada_por_catalogo` (ux.md "Precio o producto cambiado al enviar"). */
+export const AVISO_PRECIOS_ACTUALIZADOS =
+  "Los precios se actualizaron mientras completabas tus datos. Revisá el total y volvé a enviar la orden.";
