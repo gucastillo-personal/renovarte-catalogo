@@ -72,3 +72,23 @@ describe("ChatComboCard — budget relation copy (AC-8/AC-9)", () => {
     expect(html).toContain("Total del combo:");
   });
 });
+
+describe("ChatComboCard — bloque de acción (spec 0017, F17)", () => {
+  it("sin 'action' la card es la de 0016 (sin botón)", () => {
+    const html = renderToStaticMarkup(<ChatComboCard combo={combo()} presupuesto={50000} />);
+    expect(html).not.toContain("<button");
+  });
+
+  it("renderiza 'action' al final de la card y expone el id del h3 para aria-describedby", () => {
+    const html = renderToStaticMarkup(
+      <ChatComboCard
+        combo={combo()}
+        presupuesto={50000}
+        headingId="m1-mas_barato-titulo"
+        action={<button type="button">Agregar combo al carrito</button>}
+      />,
+    );
+    expect(html).toContain('<h3 id="m1-mas_barato-titulo"');
+    expect(html.indexOf("Agregar combo al carrito")).toBeGreaterThan(html.indexOf("por debajo de tu presupuesto"));
+  });
+});
