@@ -75,3 +75,31 @@ export const ANUNCIO_ENVIANDO = "Enviando tu orden…";
 /** Aviso tras un 409 `rechazada_por_catalogo` (ux.md "Precio o producto cambiado al enviar"). */
 export const AVISO_PRECIOS_ACTUALIZADOS =
   "Los precios se actualizaron mientras completabas tus datos. Revisá el total y volvé a enviar la orden.";
+
+/** "el producto" / "los N productos" (los combos traen 2 o más, pero no se asume). */
+function productosDelCombo(n: number): string {
+  return n === 1 ? "el producto" : `los ${n} productos`;
+}
+
+/**
+ * Qué pasó al tocar "Agregar combo al carrito" (ux.md "Card de combo", Q-F2c).
+ * `sumados` = productos que sumaron 1; `total` = productos del combo; `enCarrito`
+ * = unidades del carrito. Sin el "✓": lo agrega la card; el anuncio no lo lleva.
+ */
+export function resultadoCombo(sumados: number, total: number, enCarrito: number): string {
+  const carrito = `Tu carrito tiene ${productosLabel(enCarrito)}.`;
+  if (sumados <= 0) {
+    return `No agregamos nada: ${productosDelCombo(total)} de este combo ya ${total === 1 ? "está" : "están"} en el máximo de ${MAX_POR_LINEA} unidades por producto. ${carrito}`;
+  }
+  if (sumados >= total) {
+    return `Agregaste ${productosDelCombo(total)} de este combo, 1 de cada uno. ${carrito}`;
+  }
+  const m = total - sumados;
+  return `Agregaste ${sumados} de ${productosDelCombo(total)} de este combo, 1 de cada uno. ${m} ${m === 1 ? "ya estaba" : "ya estaban"} en el máximo de ${MAX_POR_LINEA} unidades por producto. ${carrito}`;
+}
+
+/** Anuncio en la región del diálogo: "Combo {nivel}: " + el mismo texto, sin "✓" (ux.md "Accesibilidad"). */
+export function anuncioCombo(nivel: string, sumados: number, total: number, enCarrito: number): string {
+  const texto = resultadoCombo(sumados, total, enCarrito);
+  return `Combo ${nivel}: ${texto.charAt(0).toLowerCase()}${texto.slice(1)}`;
+}

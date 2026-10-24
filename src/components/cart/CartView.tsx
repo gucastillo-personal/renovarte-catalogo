@@ -276,6 +276,9 @@ export function CartView({ catalogo }: { catalogo: CartCatalog }) {
   useEffect(() => {
     const key = pendingFocus.current;
     if (!key) return;
+    // "Ver carrito" desde el chat pide el foco al montar, antes de `ready`: el árbol de la
+    // primera pasada se desmonta al estar listo y el `h1` perdería el foco. Se espera.
+    if (key === "heading" && !ready) return;
     pendingFocus.current = null;
     if (key === "heading") {
       headingRef.current?.focus();

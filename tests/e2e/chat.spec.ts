@@ -1,4 +1,9 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { expect, test, type Page } from "@playwright/test";
+
+import type { Product } from "../../src/lib/types";
 
 /**
  * spec 0016 — Colibrí chat e2e suite. No real `renovarte-chat-gateway`/
@@ -435,4 +440,143 @@ test("AC-11/progresividad: with JS permanently disabled, the FAB/home card are v
   await expect(page).toHaveURL(/\/producto\//);
 
   await context.close();
+});
+
+// --- spec 0017, F17: "Agregar combo al carrito" ---------------------------------
+
+const CART_KEY = "renovarte:carrito:v1";
+
+// Productos reales del catálogo (como `cart.spec.ts`): el contador del carrito solo cuenta ids vigentes.
+const catalogProducts = JSON.parse(
+  readFileSync(path.join(process.cwd(), "public", "data", "products.json"), "utf-8"),
+) as Product[];
+const nameCount = new Map<string, number>();
+for (const p of catalogProducts) nameCount.set(p.nombre, (nameCount.get(p.nombre) ?? 0) + 1);
+const [PA, PB] = catalogProducts.filter(
+  (p) => nameCount.get(p.nombre) === 1 && p.presentacion.trim() !== "",
+) as [Product, Product];
+
+const REAL_COMBOS = (["mas_barato", "medio", "premium"] as const).map((nivel) => ({
+  nivel,
+  items: [PA, PB].map((p) => ({
+    producto_id: p.id,
+    nombre: p.nombre,
+    presentacion: p.presentacion,
+    precio_venta: p.precio_venta,
+  })),
+  total: PA.precio_venta + PB.precio_venta,
+}));
+
+async function openWithRealCombos(page: Page) {
+  await page.routeWebSocket(WS_URL, (ws) => {
+    ws.onMessage((raw) => {
+      const received = JSON.parse(String(raw));
+      if (received.type !== "user_message") return;
+      ws.send(envelope("text_done", { text: "Encontré estas opciones para vos" }, received.turn_id));
+      ws.send(envelope("combo_recommendation", { combos: REAL_COMBOS }, received.turn_id));
+    });
+  });
+}
+
+async function askForCombos(page: Page) {
+  await openViaFab(page);
+  await page.getByRole("textbox", { name: "Mensaje para Colibrí" }).fill("piel seca");
+  await page.getByRole("button", { name: "Enviar mensaje" }).click();
+  await expect(page.getByTestId("chat-combo-card")).toHaveCount(3);
+}
+
+async function storedLines(page: Page): Promise<Array<{ producto_id: string; cantidad: number; precio_visto: number; nombre: string }>> {
+  return page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{"lines":[]}').lines, CART_KEY);
+}
+
+test("AC-6 / AC-7: agregar el combo suma 1 de cada producto, el panel sigue abierto y 'Agregar otra vez' suma otra unidad", async ({
+  page,
+}) => {
+  await openWithRealCombos(page);
+  await page.goto("/");
+  await askForCombos(page);
+
+  const card = page.getByTestId("chat-combo-card").first();
+  const add = card.getByRole("button", { name: /^Agregar combo al carrito/ });
+  await expect(add).toContainText("(2 productos)");
+  await add.click();
+
+  const lines = await storedLines(page);
+  expect(lines).toHaveLength(2);
+  for (const p of [PA, PB]) {
+    const line = lines.find((l) => l.producto_id === p.id);
+    expect(line).toMatchObject({ cantidad: 1, nombre: p.nombre, precio_visto: p.precio_venta });
+  }
+
+  // Confirmación visible dentro de la card y anuncio en la región del diálogo (fuera del `log`).
+  await expect(card.getByTestId("chat-combo-resultado")).toContainText(
+    "✓ Agregaste los 2 productos de este combo, 1 de cada uno. Tu carrito tiene 2 productos.",
+  );
+  const announcer = page.getByTestId("chat-announcer");
+  await expect(announcer).toContainText("Combo Más barato: agregaste los 2 productos de este combo");
+  await expect(page.getByRole("log").getByTestId("chat-announcer")).toHaveCount(0);
+
+  // El panel no se cierra, no navega y el hilo queda igual.
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId("chat-combo-card")).toHaveCount(3);
+
+  // Mismo nodo, ahora "Agregar otra vez": suma otra unidad de cada producto.
+  const again = card.getByRole("button", { name: /^Agregar otra vez/ });
+  await expect(again).toBeVisible();
+  await again.click();
+  const after = await storedLines(page);
+  expect(after.map((l) => l.cantidad)).toEqual([2, 2]);
+  await expect(card.getByTestId("chat-combo-resultado")).toContainText("Tu carrito tiene 4 productos.");
+});
+
+test("AC-7: 'Ver carrito' cierra el panel, enfoca el h1 de /carrito y al reabrir el FAB el hilo y el 'agregado' siguen ahí", async ({
+  page,
+}) => {
+  await openWithRealCombos(page);
+  await page.goto("/");
+  await askForCombos(page);
+
+  const card = page.getByTestId("chat-combo-card").first();
+  await card.getByRole("button", { name: /^Agregar combo al carrito/ }).click();
+  await card.getByRole("link", { name: "Ver carrito" }).click();
+
+  await expect(page).toHaveURL(/\/carrito$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator("h1")).toBeFocused();
+
+  await page.getByRole("button", { name: "Abrir chat con Colibrí" }).click();
+  await expect(page.getByTestId("chat-combo-card")).toHaveCount(3);
+  await expect(
+    page.getByTestId("chat-combo-card").first().getByRole("button", { name: /^Agregar otra vez/ }),
+  ).toBeVisible();
+});
+
+test("Q-F2c: con una línea del combo ya en 10 se omite sin deshabilitar el botón y la confirmación dice lo que pasó", async ({
+  page,
+}) => {
+  await openWithRealCombos(page);
+  await page.goto("/");
+  await page.evaluate(
+    ([k, p]) =>
+      localStorage.setItem(
+        k as string,
+        JSON.stringify({
+          v: 1,
+          lines: [{ producto_id: (p as Product).id, cantidad: 10, precio_visto: (p as Product).precio_venta, nombre: (p as Product).nombre, presentacion: (p as Product).presentacion, imagen: (p as Product).imagen }],
+        }),
+      ),
+    [CART_KEY, PA] as const,
+  );
+  await page.reload();
+  await askForCombos(page);
+
+  const card = page.getByTestId("chat-combo-card").first();
+  await card.getByRole("button", { name: /^Agregar combo al carrito/ }).click();
+  await expect(card.getByTestId("chat-combo-resultado")).toContainText(
+    "✓ Agregaste 1 de los 2 productos de este combo, 1 de cada uno. 1 ya estaba en el máximo de 10 unidades por producto. Tu carrito tiene 11 productos.",
+  );
+  const lines = await storedLines(page);
+  expect(lines.find((l) => l.producto_id === PA.id)?.cantidad).toBe(10);
+  expect(lines.find((l) => l.producto_id === PB.id)?.cantidad).toBe(1);
 });

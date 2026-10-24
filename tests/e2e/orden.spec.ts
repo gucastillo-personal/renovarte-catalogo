@@ -451,7 +451,8 @@ test.describe("F15 — confirmación", () => {
 
     // Carga completa de / → tampoco; y volver a /carrito → vacío.
     await page.goto("/");
-    expect(await sessionKeys(page)).toEqual([]);
+    // El borrado corre en un efecto del `CartProvider`, después de hidratar: `goto` resuelve antes.
+    await expect.poll(() => sessionKeys(page)).toEqual([]);
     await page.goto("/carrito");
     await expect(page.getByText("Tu carrito está vacío.")).toBeVisible();
     await expect(page.getByText("RA-48271")).toHaveCount(0);
@@ -465,6 +466,7 @@ test.describe("F15 — confirmación", () => {
     expect(await sessionKeys(page)).toContain(DRAFT_KEY);
     expect(await sessionKeys(page)).not.toContain(CONFIRMATION_KEY);
     await page.goto("/");
-    expect(await sessionKeys(page)).toEqual([]);
+    // El borrado corre en un efecto del `CartProvider`, después de hidratar: `goto` resuelve antes.
+    await expect.poll(() => sessionKeys(page)).toEqual([]);
   });
 });

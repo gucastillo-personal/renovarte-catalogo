@@ -21,6 +21,17 @@ export interface CartLineItemProps {
 
 /** Miniatura decorativa (`alt=""`): el nombre está al lado. */
 function Thumb({ line, faded }: { line: CartLine; faded: boolean }) {
+  // Una línea agregada desde el chat llega sin imagen hasta que `/carrito` revalida (AC-15).
+  if (line.imagen === "") {
+    return (
+      <div
+        aria-hidden="true"
+        className={`h-16 w-16 shrink-0 rounded-lg border border-beige-200 bg-beige-100 md:h-[72px] md:w-[72px] ${
+          faded ? "opacity-50" : ""
+        }`}
+      />
+    );
+  }
   return (
     <Image
       src={line.imagen}

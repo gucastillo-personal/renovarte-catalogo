@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { ChatAnnouncer } from "@/components/chat/ChatAnnouncer";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { useChatWidget } from "@/components/chat/ChatProvider";
@@ -70,7 +71,7 @@ export function ChatPanel() {
     <>
       <div
         aria-hidden="true"
-        onClick={closeChat}
+        onClick={() => closeChat()}
         data-testid="chat-scrim"
         className="fixed inset-0 z-40 hidden bg-sage-900/10 md:block motion-reduce:transition-none"
       />
@@ -85,6 +86,7 @@ export function ChatPanel() {
         <ChatHeader />
         <ChatProfileBar />
         <ChatThread />
+        <ChatAnnouncer />
         {midConversationUnavailable && (
           <div className="shrink-0 px-4 pt-3">
             <ChatUnavailableBlock reason={state.unavailableReason} compact />

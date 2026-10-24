@@ -254,3 +254,45 @@ describe("malformed/unexpected envelope types never throw", () => {
     expect(state).toEqual(initialChatState);
   });
 });
+
+describe("COMBO_ADDED (spec 0017, F16 / AC-7)", () => {
+  const open: ChatState = {
+    ...initialChatState,
+    isOpen: true,
+    phase: "ready",
+    messages: [{ id: "user-t1", kind: "user", text: "hola" }],
+  };
+
+  it("registra el resultado de la card sin tocar isOpen ni messages", () => {
+    const next = chatReducer(open, { type: "COMBO_ADDED", key: "m1:medio", sumados: 2, total: 2 });
+    expect(next.isOpen).toBe(true);
+    expect(next.messages).toBe(open.messages);
+    expect(next.combosAgregados["m1:medio"]).toEqual({ veces: 1, sumados: 2, total: 2 });
+  });
+
+  it("'veces' solo cuenta las pulsaciones que sumaron; 'sumados' es el de la última", () => {
+    let s = chatReducer(open, { type: "COMBO_ADDED", key: "k", sumados: 2, total: 2 });
+    s = chatReducer(s, { type: "COMBO_ADDED", key: "k", sumados: 0, total: 2 });
+    expect(s.combosAgregados["k"]).toEqual({ veces: 1, sumados: 0, total: 2 });
+    s = chatReducer(s, { type: "COMBO_ADDED", key: "k", sumados: 1, total: 2 });
+    expect(s.combosAgregados["k"]).toEqual({ veces: 2, sumados: 1, total: 2 });
+  });
+
+  it("con k = 0 desde el principio 'veces' queda en 0 (el botón conserva su texto)", () => {
+    const s = chatReducer(open, { type: "COMBO_ADDED", key: "k", sumados: 0, total: 2 });
+    expect(s.combosAgregados["k"]?.veces).toBe(0);
+  });
+
+  it("cerrar y reabrir el panel conserva combosAgregados", () => {
+    let s = chatReducer(open, { type: "COMBO_ADDED", key: "k", sumados: 2, total: 2 });
+    s = chatReducer(s, { type: "CLOSE" });
+    s = chatReducer(s, { type: "OPEN" });
+    expect(s.combosAgregados["k"]?.veces).toBe(1);
+  });
+
+  it("cada card tiene su propia entrada", () => {
+    let s = chatReducer(open, { type: "COMBO_ADDED", key: "m1:mas_barato", sumados: 2, total: 2 });
+    s = chatReducer(s, { type: "COMBO_ADDED", key: "m1:medio", sumados: 2, total: 2 });
+    expect(Object.keys(s.combosAgregados).sort()).toEqual(["m1:mas_barato", "m1:medio"]);
+  });
+});
