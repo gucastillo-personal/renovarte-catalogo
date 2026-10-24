@@ -61,6 +61,19 @@ blocker, not a nit.
 > own `rfc-transporte-websocket.md`/`rfc-conector-llm-rag.md` for the
 > full design.
 
+> **Reference note (2026-10, spec 0017 "Carrito y orden de compra"), not an
+> amendment.** Invariant 4 stands: this repo still has no runtime backend of
+> its own. The cart is client-side state (`localStorage`: products and
+> quantities only, never contact data) and the order is submitted to
+> [`renovarte-ordenes`](https://github.com/gucastillo-personal/renovarte-ordenes),
+> a separate service that validates against the published catalog and
+> delivers the order by email and Discord
+> ([ADR-0006](https://github.com/gucastillo-personal/renovarte-parent/blob/main/docs/decisions/ADR-0006-servicio-ordenes.md)).
+> This repo only adds client-side components and a client for that service
+> (`NEXT_PUBLIC_ORDERS_API_URL`, a public URL, never a secret). The catalog
+> never references Discord or any webhook (`pnpm check:leak`, AC-26). Full
+> design: the 0017 spec, RFC and plan in `renovarte-parent/specs/0017-carrito-orden-compra/`.
+
 6. **Static-first rendering.** Pages are statically generated (SSG). Fast initial
    load, good SEO for product detail pages (RNF-02, RFC §4).
 7. **Multi-provider ready, single-provider active.** The `proveedor` field exists
