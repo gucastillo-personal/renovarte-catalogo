@@ -35,6 +35,18 @@ export type ChatMessage =
     }
   | { id: string; kind: "no_recommendation"; mensaje: string; turnId: string };
 
+/**
+ * Resultado de "Agregar combo al carrito" para una card (spec 0017, F16/F17).
+ * `sumados`/`total` son los de la última pulsación (`ux.md` "Combo con alguna
+ * línea ya en el máximo"); `veces` cuenta las pulsaciones que sí sumaron algo
+ * y decide si el botón dice "Agregar otra vez".
+ */
+export interface ComboAgregado {
+  veces: number;
+  sumados: number;
+  total: number;
+}
+
 export interface ChatState {
   isOpen: boolean;
   phase: ConnectionPhase;
@@ -53,6 +65,12 @@ export interface ChatState {
   /** Visible only until the visitor's first message (`ux.md` "Arranque de la conversación"). */
   showExampleChips: boolean;
   composerPlaceholder: string;
+  /**
+   * Cards de combo ya agregadas al carrito, por `comboKey(messageId, nivel)`.
+   * Vive acá (y no en el estado de la card) para sobrevivir a cerrar y
+   * reabrir el panel y a la navegación cliente (AC-7).
+   */
+  combosAgregados: Record<string, ComboAgregado>;
 }
 
 export const initialChatState: ChatState = {
@@ -67,7 +85,13 @@ export const initialChatState: ChatState = {
   profile: {},
   showExampleChips: true,
   composerPlaceholder: CHAT_COMPOSER_PLACEHOLDER,
+  combosAgregados: {},
 };
+
+/** Clave de una card de combo dentro de `combosAgregados`. */
+export function comboKey(messageId: string, nivel: string): string {
+  return `${messageId}:${nivel}`;
+}
 
 export type ChatAction =
   | { type: "OPEN" }
@@ -78,7 +102,8 @@ export type ChatAction =
   | { type: "LOCAL_UNAVAILABLE"; reason: string }
   | { type: "USER_MESSAGE_SENT"; text: string; turnId: string }
   | { type: "SERVER_ENVELOPE"; envelope: ChatEnvelope }
-  | { type: "REQUEST_CHANGE_PROFILE" };
+  | { type: "REQUEST_CHANGE_PROFILE" }
+  | { type: "COMBO_ADDED"; key: string; sumados: number; total: number };
 
 function nextMessageId(state: ChatState, prefix: string, turnId: string): string {
   return `${prefix}-${turnId}-${state.messages.length}`;
@@ -130,6 +155,22 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case "REQUEST_CHANGE_PROFILE":
       return { ...state, composerPlaceholder: CHAT_CHANGE_PROFILE_PLACEHOLDER };
+
+    case "COMBO_ADDED": {
+      // AC-7: solo registra el resultado; no toca `isOpen`, `messages` ni el resto.
+      const prev = state.combosAgregados[action.key];
+      return {
+        ...state,
+        combosAgregados: {
+          ...state.combosAgregados,
+          [action.key]: {
+            veces: (prev?.veces ?? 0) + (action.sumados > 0 ? 1 : 0),
+            sumados: action.sumados,
+            total: action.total,
+          },
+        },
+      };
+    }
 
     case "SERVER_ENVELOPE":
       return applyServerEnvelope(state, action.envelope);

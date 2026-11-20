@@ -46,6 +46,54 @@ valor el chat entra directo al estado "no disponible" (razón local
 ficha) sigue funcionando sin cambios (AC-11), y así es como corre hoy este
 repo (ninguno de los 2 repos externos está desplegado todavía).
 
+## Carrito y órdenes (spec 0017)
+
+El carrito vive **solo en el navegador** (`localStorage`, clave
+`renovarte:carrito:v1`, únicamente productos y cantidades; nunca datos de
+contacto). Se arma desde la ficha de producto y desde las cards de combo del
+chat "Colibrí", y se revisa en `/carrito`, donde se contrasta con el catálogo
+vigente cada vez que se abre. "Enviar orden" manda el carrito y los datos de
+contacto (nombre y apellido, teléfono) a
+[`renovarte-ordenes`](https://github.com/gucastillo-personal/renovarte-ordenes),
+un servicio aparte que valida contra el catálogo y entrega la orden por mail y
+Discord; este repo no tiene backend propio (`specs/constitution.md` §II.4,
+nota de referencia). Spec, plan y UX completos:
+[`specs/0017-carrito-orden-compra`](https://github.com/gucastillo-personal/renovarte-parent/tree/main/specs/0017-carrito-orden-compra)
+en `renovarte-parent`.
+
+- **Variable de entorno:** `NEXT_PUBLIC_ORDERS_API_URL`, la URL pública de la
+  Function URL (ver [`.env.local.example`](./.env.local.example)). Es pública,
+  no un secreto.
+- **Sin la variable:** el catálogo, el carrito y `/carrito` funcionan igual
+  (el servicio caído tampoco los afecta, AC-21). Solo el envío falla: el
+  visitante ve el aviso de "no se envió", con su carrito y sus datos intactos
+  y los canales directos para pedir por teléfono, mail o Instagram.
+- **Datos de contacto:** el borrador del formulario y la confirmación viven en
+  `sessionStorage` solo mientras la ruta es `/carrito`, y se borran al navegar
+  a otra ruta. Nunca van a `localStorage` ni al repo.
+- **Sin JavaScript:** el link del header lleva a `/carrito` y la ficha y
+  `/carrito` muestran un aviso con los canales directos.
+
+### Desarrollo contra el servidor local
+
+`renovarte-ordenes` trae un harness con el mismo contrato HTTP y sin AWS,
+Discord ni SES reales (el mail y el mensaje de Discord se imprimen en su
+consola). Usar solo datos ficticios:
+
+```bash
+# en renovarte-ordenes
+pnpm dev:local            # http://127.0.0.1:8787, acepta http://localhost:3000
+
+# en este repo, con NEXT_PUBLIC_ORDERS_API_URL=http://localhost:8787 en .env.local
+pnpm dev
+```
+
+Sus flags (`--fail`, `--fail-mode`, `--control`) fuerzan la falla de un canal o
+de los dos y el tope, para probar esos estados desde la UI; ver el README de
+`renovarte-ordenes`. El token del formulario recién vale a los 3 s de emitido.
+Los tests e2e no lo necesitan: contestan `https://ordenes.test` con
+`page.route()` (`tests/e2e/orders-mock.ts`).
+
 ## Scripts
 
 | Comando | Qué hace |
@@ -57,7 +105,7 @@ repo (ninguno de los 2 repos externos está desplegado todavía).
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | End-to-end (Playwright; hace `build` + `start`) |
-| `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista en el output (`.next/`, `public/data/`) — RNF-03 |
+| `pnpm check:leak` | Falla si aparecen costo/margen/precio de lista, o una URL de webhook de Discord, en el output (`.next/`, `public/data/`) — RNF-03, AC-26 |
 | `pnpm gate` | Corre todo en orden: lint · build · typecheck · test · check:leak · e2e (build antes de typecheck: genera los tipos de ruta de Next) |
 | `pnpm ship` | `pnpm gate` y, si pasa, `vercel deploy --prod` (deploy a producción) |
 | `pnpm ship:preview` | `pnpm gate` y `vercel deploy` (URL de preview) |

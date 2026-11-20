@@ -3,7 +3,10 @@ import { Cormorant_Garamond, Geist } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 
+import { CartHeaderLink } from "@/components/cart/CartHeaderLink";
+import { CartProvider } from "@/components/cart/CartProvider";
 import { ChatProvider } from "@/components/chat/ChatProvider";
+import { getAllProducts } from "@/lib/products";
 
 import "./globals.css";
 
@@ -56,37 +59,42 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const catalogIds = getAllProducts().map((p) => p.id);
+
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <ChatProvider>
-          <header className="border-b border-beige-200 bg-beige-100">
-            <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
-              <Link href="/" aria-label="RenovArte — inicio">
-                <Image
-                  src="/brand/logo-wordmark.svg"
-                  alt="RenovArte"
-                  width={230}
-                  height={45}
-                  priority
-                  unoptimized
-                  className="h-9 w-auto sm:h-10"
-                />
-              </Link>
-            </div>
-          </header>
+        <CartProvider catalogIds={catalogIds}>
+          <ChatProvider>
+            <header className="sticky top-0 z-30 border-b border-beige-200 bg-beige-100">
+              <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+                <Link href="/" aria-label="RenovArte — inicio">
+                  <Image
+                    src="/brand/logo-wordmark.svg"
+                    alt="RenovArte"
+                    width={230}
+                    height={45}
+                    priority
+                    unoptimized
+                    className="h-9 w-auto sm:h-10"
+                  />
+                </Link>
+                <CartHeaderLink />
+              </div>
+            </header>
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
 
-          <footer className="border-t border-beige-200 bg-beige-100">
-            <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-sage-600">
-              © {new Date().getFullYear()} RenovArte · Spa de piel
-            </div>
-          </footer>
-        </ChatProvider>
+            <footer className="border-t border-beige-200 bg-beige-100">
+              <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-sage-600">
+                © {new Date().getFullYear()} RenovArte · Spa de piel
+              </div>
+            </footer>
+          </ChatProvider>
+        </CartProvider>
       </body>
     </html>
   );

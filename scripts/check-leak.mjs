@@ -21,6 +21,9 @@ const FORBIDDEN = [
   /margin_percent/i,
   /\bmargen\b/i,
   /(?<![\p{L}])costo(?![\p{L}])/iu,
+  // AC-26 (spec 0017): el catálogo nunca referencia Discord; el webhook vive solo en
+  // `renovarte-ordenes`. Cualquier URL de la API de webhooks en el output es una fuga.
+  /discord(?:app)?\.com\/api\/webhooks/i,
 ];
 
 /** @param {string} dir */
