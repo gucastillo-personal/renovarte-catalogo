@@ -1,3 +1,4 @@
+import { ChatComboAddToCart } from "@/components/chat/ChatComboAddToCart";
 import { ChatComboCard } from "@/components/chat/ChatComboCard";
 import type { ComboEntry } from "@/lib/chat/types";
 
@@ -11,14 +12,29 @@ import type { ComboEntry } from "@/lib/chat/types";
 export function ChatComboList({
   combos,
   presupuesto,
+  messageId,
 }: {
+  /** Id del mensaje del hilo: con el nivel, identifica la card para "ya agregado" (spec 0017, F17). */
+  messageId: string;
   combos: [ComboEntry, ComboEntry, ComboEntry];
   presupuesto: number | undefined;
 }) {
   return (
     <ol className="flex flex-col gap-3" data-testid="chat-combo-list">
       {combos.map((combo, index) => (
-        <ChatComboCard key={`${combo.nivel}-${index}`} combo={combo} presupuesto={presupuesto} />
+        <ChatComboCard
+          key={`${combo.nivel}-${index}`}
+          combo={combo}
+          presupuesto={presupuesto}
+          headingId={`${messageId}-${combo.nivel}-titulo`}
+          action={
+            <ChatComboAddToCart
+              combo={combo}
+              messageId={messageId}
+              headingId={`${messageId}-${combo.nivel}-titulo`}
+            />
+          }
+        />
       ))}
     </ol>
   );

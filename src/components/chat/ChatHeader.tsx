@@ -14,7 +14,7 @@ export function ChatHeader() {
       </h2>
       <button
         type="button"
-        onClick={closeChat}
+        onClick={() => closeChat()}
         aria-label="Cerrar chat"
         className="flex h-9 w-9 items-center justify-center rounded-full text-sage-700 transition-colors hover:bg-sage-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500"
       >

@@ -56,7 +56,8 @@ export interface ChatWidgetContextValue {
   state: ChatState;
   /** `trigger` is the exact element that was clicked (FAB or the home invite card's button) — focus returns there on close (`ux.md` "Accesibilidad"). */
   openChat(trigger: HTMLElement): void;
-  closeChat(): void;
+  /** `restoreFocus: false` lo usa "Ver carrito": el foco lo toma el `h1` de `/carrito`, no el FAB. */
+  closeChat(options?: { restoreFocus?: boolean }): void;
   sendMessage(text: string): void;
   requestChangeProfile(): void;
   /** The composer registers its textarea here so `requestChangeProfile` can move focus to it (`ux.md`: "Cambiar" enfoca el input). */
@@ -64,6 +65,11 @@ export interface ChatWidgetContextValue {
   /** The text currently typed but not yet sent — shared so `ChatExampleChips` can fill the composer without lifting it into the reducer (not conversation state). */
   draftText: string;
   setDraftText(text: string): void;
+  /** Resultado de "Agregar combo al carrito" de una card (F16): no toca `isOpen` ni `messages`. */
+  registerComboAdded(key: string, sumados: number, total: number): void;
+  /** Texto de la live region del diálogo (hermana del `role="log"`, ux.md "Accesibilidad"). */
+  chatAnnouncement: string;
+  announceInChat(text: string): void;
 }
 
 const ChatWidgetContext = createContext<ChatWidgetContextValue | null>(null);
@@ -86,6 +92,7 @@ export function ChatProvider({
 }) {
   const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const [draftText, setDraftText] = useState("");
+  const [chatAnnouncement, setChatAnnouncement] = useState("");
   const triggerRef = useRef<HTMLElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,11 +133,21 @@ export function ChatProvider({
     }, CONNECTING_SLOW_THRESHOLD_MS);
   }, []);
 
-  const closeChat = useCallback(() => {
+  const closeChat = useCallback((options?: { restoreFocus?: boolean }) => {
     dispatch({ type: "CLOSE" });
-    triggerRef.current?.focus();
+    if (options?.restoreFocus !== false) triggerRef.current?.focus();
     triggerRef.current = null;
   }, []);
+
+  const registerComboAdded = useCallback((key: string, sumados: number, total: number) => {
+    dispatch({ type: "COMBO_ADDED", key, sumados, total });
+  }, []);
+
+  // Mismo texto dos veces seguidas no cambiaría el nodo: se alterna un espacio fino (como el sitio).
+  const announceInChat = useCallback(
+    (text: string) => setChatAnnouncement((prev) => (prev === text ? `${text}\u00a0` : text)),
+    [],
+  );
 
   const sendMessage = useCallback((text: string) => {
     const trimmed = text.trim();
@@ -160,8 +177,22 @@ export function ChatProvider({
       registerComposerElement,
       draftText,
       setDraftText,
+      registerComboAdded,
+      chatAnnouncement,
+      announceInChat,
     }),
-    [state, openChat, closeChat, sendMessage, requestChangeProfile, registerComposerElement, draftText],
+    [
+      state,
+      openChat,
+      closeChat,
+      sendMessage,
+      requestChangeProfile,
+      registerComposerElement,
+      draftText,
+      registerComboAdded,
+      chatAnnouncement,
+      announceInChat,
+    ],
   );
 
   return (

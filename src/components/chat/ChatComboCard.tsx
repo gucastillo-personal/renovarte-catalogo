@@ -35,9 +35,15 @@ function relationText(total: number, presupuesto: number, nivel: ComboNivel): st
 export function ChatComboCard({
   combo,
   presupuesto,
+  headingId,
+  action,
 }: {
   combo: ComboEntry;
   presupuesto: number | undefined;
+  /** `id` del `h3` (para `aria-describedby` del botón de `action`). */
+  headingId?: string;
+  /** Bloque al final de la card ("Agregar combo al carrito", spec 0017). Opcional: sin él la card es la de 0016. */
+  action?: React.ReactNode;
 }) {
   return (
     <li
@@ -45,7 +51,7 @@ export function ChatComboCard({
       data-testid="chat-combo-card"
       data-nivel={combo.nivel}
     >
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-sage-600">
+      <h3 id={headingId} className="text-xs font-semibold uppercase tracking-wide text-sage-600">
         {NIVEL_LABEL[combo.nivel]}
       </h3>
 
@@ -79,6 +85,7 @@ export function ChatComboCard({
           </>
         )}
       </div>
+      {action}
     </li>
   );
 }

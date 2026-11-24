@@ -89,6 +89,7 @@ export function ChatThread() {
                 return (
                   <ChatComboList
                     key={message.id}
+                    messageId={message.id}
                     combos={message.combos}
                     presupuesto={message.presupuesto}
                   />
